@@ -31,6 +31,7 @@ import { locationService } from '../services/locationService';
 import { safeZoneService } from '../services/safeZoneService';
 import { alertService } from '../services/alertService';
 import { userService } from '../services/userService';
+import { medicationService } from '../services/medicationService';
 import websocketService from '../services/websocketService';
 
 const CaretakerDashboard = () => {
@@ -53,6 +54,11 @@ const CaretakerDashboard = () => {
     const [linkPatientId, setLinkPatientId] = useState('');
     const [mapCenter, setMapCenter] = useState(null); // null = not yet loaded
 
+    // Medication state
+    const [medications, setMedications] = useState([]);
+    const [openMedDialog, setOpenMedDialog] = useState(false);
+    const [newMed, setNewMed] = useState({ medicationName: '', dosage: '', scheduleTimes: [''], notes: '' });
+
     useEffect(() => {
         loadUserData();
 
@@ -69,10 +75,10 @@ const CaretakerDashboard = () => {
         if (selectedPatient) {
             loadPatientData(selectedPatient);
             loadLocationHistory(selectedPatient);
+            loadMedications(selectedPatient);
 
             const locationSub = websocketService.subscribeToLocation(selectedPatient, (location) => {
                 updatePatientLocation(selectedPatient, location);
-                // Also update map center live
                 if (location) {
                     setMapCenter({ lat: location.latitude, lng: location.longitude });
                 }
@@ -207,6 +213,52 @@ const CaretakerDashboard = () => {
         } catch (error) {
             console.error('Error deleting safe zone:', error);
         }
+    };
+
+    const loadMedications = async (patientId) => {
+        try {
+            const meds = await medicationService.getPatientMedications(patientId);
+            setMedications(meds);
+        } catch (error) {
+            console.error('Error loading medications:', error);
+        }
+    };
+
+    const handleAddMedication = async () => {
+        try {
+            const med = {
+                ...newMed,
+                patientId: selectedPatient,
+                createdByCaretakerId: user.userId,
+                scheduleTimes: newMed.scheduleTimes.filter(t => t.trim() !== '')
+            };
+            await medicationService.createMedication(med);
+            setOpenMedDialog(false);
+            setNewMed({ medicationName: '', dosage: '', scheduleTimes: [''], notes: '' });
+            loadMedications(selectedPatient);
+        } catch (error) {
+            console.error('Error adding medication:', error);
+        }
+    };
+
+    const handleDeleteMedication = async (medId) => {
+        try {
+            await medicationService.deleteMedication(medId);
+            setMedications(prev => prev.filter(m => m.id !== medId));
+        } catch (error) {
+            console.error('Error deleting medication:', error);
+        }
+    };
+
+    const addTimeSlot = () => setNewMed(prev => ({ ...prev, scheduleTimes: [...prev.scheduleTimes, ''] }));
+    const updateTimeSlot = (index, value) => {
+        const times = [...newMed.scheduleTimes];
+        times[index] = value;
+        setNewMed(prev => ({ ...prev, scheduleTimes: times }));
+    };
+    const removeTimeSlot = (index) => {
+        const times = newMed.scheduleTimes.filter((_, i) => i !== index);
+        setNewMed(prev => ({ ...prev, scheduleTimes: times.length ? times : [''] }));
     };
 
     const handleLinkPatient = async () => {
@@ -366,6 +418,39 @@ const CaretakerDashboard = () => {
                                 </List>
                             </CardContent>
                         </Card>
+
+                        {/* Medications Management */}
+                        <Card sx={{ mt: 2 }}>
+                            <CardContent>
+                                <Typography variant="h6" gutterBottom>💊 Medications</Typography>
+                                <List dense>
+                                    {medications.map((med) => (
+                                        <ListItem key={med.id} sx={{ pr: 5 }}>
+                                            <ListItemText
+                                                primary={<strong>{med.medicationName}</strong>}
+                                                secondary={`${med.dosage} — ${(med.scheduleTimes || []).join(', ')}`}
+                                            />
+                                            <ListItemSecondaryAction>
+                                                <IconButton edge="end" size="small" color="error"
+                                                    onClick={() => handleDeleteMedication(med.id)} title="Remove medication">
+                                                    <Delete fontSize="small" />
+                                                </IconButton>
+                                            </ListItemSecondaryAction>
+                                        </ListItem>
+                                    ))}
+                                    {medications.length === 0 && (
+                                        <Typography variant="body2" color="text.secondary">
+                                            No medications added yet.
+                                        </Typography>
+                                    )}
+                                </List>
+                                <Button fullWidth variant="outlined" startIcon={<Add />}
+                                    onClick={() => setOpenMedDialog(true)}
+                                    disabled={!selectedPatient} sx={{ mt: 1 }}>
+                                    Add Medication
+                                </Button>
+                            </CardContent>
+                        </Card>
                     </Grid>
 
                     {/* Map */}
@@ -467,7 +552,10 @@ const CaretakerDashboard = () => {
                                             <Box>
                                                 <Chip
                                                     label={alert.type}
-                                                    color={alert.type === 'EMERGENCY' ? 'error' : 'warning'}
+                                                    color={
+                                                        alert.type === 'EMERGENCY' || alert.type === 'FALL' ? 'error' :
+                                                            alert.type === 'FOG' || alert.type === 'MEDICATION_DUE' ? 'warning' : 'default'
+                                                    }
                                                     size="small"
                                                     sx={{ mr: 1 }}
                                                 />
@@ -505,6 +593,45 @@ const CaretakerDashboard = () => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setOpenAlertsDialog(false)}>Close</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Add Medication Dialog */}
+            <Dialog open={openMedDialog} onClose={() => setOpenMedDialog(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Add Medication</DialogTitle>
+                <DialogContent>
+                    <TextField fullWidth label="Medication Name" margin="normal"
+                        value={newMed.medicationName}
+                        onChange={(e) => setNewMed({ ...newMed, medicationName: e.target.value })} />
+                    <TextField fullWidth label="Dosage (e.g. 500mg)" margin="normal"
+                        value={newMed.dosage}
+                        onChange={(e) => setNewMed({ ...newMed, dosage: e.target.value })} />
+                    <Typography variant="body2" sx={{ mt: 2, mb: 1 }}><strong>Schedule Times</strong></Typography>
+                    {newMed.scheduleTimes.map((time, index) => (
+                        <Box key={index} display="flex" alignItems="center" gap={1} mb={1}>
+                            <TextField type="time" size="small" value={time}
+                                onChange={(e) => updateTimeSlot(index, e.target.value)}
+                                inputProps={{ step: 300 }} sx={{ flexGrow: 1 }} />
+                            <IconButton size="small" color="error"
+                                onClick={() => removeTimeSlot(index)}
+                                disabled={newMed.scheduleTimes.length === 1}>
+                                <Delete fontSize="small" />
+                            </IconButton>
+                        </Box>
+                    ))}
+                    <Button size="small" startIcon={<Add />} onClick={addTimeSlot} sx={{ mt: 0.5 }}>
+                        Add Time
+                    </Button>
+                    <TextField fullWidth label="Notes (optional)" margin="normal" multiline rows={2}
+                        value={newMed.notes}
+                        onChange={(e) => setNewMed({ ...newMed, notes: e.target.value })} />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpenMedDialog(false)}>Cancel</Button>
+                    <Button onClick={handleAddMedication} variant="contained"
+                        disabled={!newMed.medicationName || !newMed.dosage}>
+                        Add
+                    </Button>
                 </DialogActions>
             </Dialog>
         </Box>
