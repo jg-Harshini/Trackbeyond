@@ -21,7 +21,6 @@ A comprehensive web application for tracking dementia patients using GPS technol
 - **Role-Based Authentication**: Separate dashboards for patients and caretakers
 - **Real-time Updates**: WebSocket integration for live location and alert updates
 - **Geofencing**: Haversine formula for accurate distance calculations
-- **Shipday API Integration**: Fetch GPS coordinates from Shipday tracking system
 - **MongoDB Atlas**: Cloud database for scalable data storage
 
 ## Technology Stack
@@ -45,7 +44,6 @@ A comprehensive web application for tracking dementia patients using GPS technol
 - Node.js 18 or higher
 - MongoDB Atlas account
 - Google Maps API key
-- Shipday API key (optional)
 
 ## Usage Guide
 
@@ -96,7 +94,6 @@ Where:
 
 ### Locations
 - `POST /api/locations` - Update patient location
-- `POST /api/locations/shipday` - Update from Shipday API(not done yet)
 - `GET /api/locations/patient/{id}/current` - Get current location
 - `GET /api/locations/patient/{id}/history` - Get location history
 
