@@ -1,25 +1,6 @@
 services:
-  # Backend (Spring Boot via Docker)
   - type: web
     name: dementia-tracker-backend
     env: docker
-    region: singapore
     plan: free
     dockerfilePath: backend/Dockerfile
-    envVars:
-      - key: SPRING_DATA_MONGODB_URI
-        sync: false
-      - key: JWT_SECRET
-        sync: false
-      - key: CORS_ALLOWED_ORIGINS 
-        value: "*"
-
-  # Frontend (React Vite)
-  - type: web
-    name: dementia-tracker-frontend
-    env: static
-    buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: frontend/dist
-    envVars:
-      - key: VITE_API_URL
-        sync: false
