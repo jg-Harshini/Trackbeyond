@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
     Container,
-    Paper,
     Typography,
     Box,
     Button,
@@ -11,7 +10,8 @@ import {
     Card,
     CardContent,
     Grid,
-    Chip
+    Chip,
+    Alert
 } from '@mui/material';
 import { Logout, LocationOn, ContentCopy, Warning } from '@mui/icons-material';
 import { locationService } from '../services/locationService';
@@ -24,9 +24,10 @@ const PatientDashboard = () => {
     const [currentLocation, setCurrentLocation] = useState(null);
     const [locationHistory, setLocationHistory] = useState([]);
     const [copied, setCopied] = useState(false);
-    const [mapCenter, setMapCenter] = useState({ lat: 37.7749, lng: -122.4194 });
+    const [mapCenter, setMapCenter] = useState(null); // null until real location loaded
     const [watchId, setWatchId] = useState(null);
     const [geoError, setGeoError] = useState(null);
+    const [emergencyStatus, setEmergencyStatus] = useState(null); // 'success' | 'error' | null
 
     useEffect(() => {
         loadCurrentLocation();
@@ -85,6 +86,10 @@ const PatientDashboard = () => {
         try {
             const location = await locationService.getCurrentLocation(user.patientId);
             setCurrentLocation(location);
+            // Pin map to real location on load/refresh
+            if (location) {
+                setMapCenter({ lat: location.latitude, lng: location.longitude });
+            }
         } catch (error) {
             console.error('Error loading current location:', error);
         }
@@ -108,14 +113,14 @@ const PatientDashboard = () => {
     };
 
     const handleEmergency = async () => {
-        if (window.confirm('Are you sure you want to trigger an EMERGENCY alert? This will notify your caretakers immediately.')) {
-            try {
-                await alertService.triggerEmergencyAlert(user.patientId);
-                alert('Emergency alert sent!');
-            } catch (error) {
-                console.error('Error sending emergency alert:', error);
-                alert('Failed to send emergency alert. Please try again or call emergency services.');
-            }
+        try {
+            await alertService.triggerEmergencyAlert(user.patientId);
+            setEmergencyStatus('success');
+            setTimeout(() => setEmergencyStatus(null), 4000);
+        } catch (error) {
+            console.error('Error sending emergency alert:', error);
+            setEmergencyStatus('error');
+            setTimeout(() => setEmergencyStatus(null), 4000);
         }
     };
 
@@ -220,17 +225,38 @@ const PatientDashboard = () => {
                         </Card>
                     </Grid>
 
+                    {emergencyStatus === 'success' && (
+                        <Grid item xs={12}>
+                            <Alert severity="success">
+                                Emergency alert sent! Your caretakers have been notified.
+                            </Alert>
+                        </Grid>
+                    )}
+                    {emergencyStatus === 'error' && (
+                        <Grid item xs={12}>
+                            <Alert severity="error">
+                                Failed to send emergency alert. Please try again or call emergency services directly.
+                            </Alert>
+                        </Grid>
+                    )}
+
                     <Grid item xs={12}>
                         <Card>
                             <CardContent>
                                 <Typography variant="h6" gutterBottom>
                                     Your Real-Time Location
                                 </Typography>
-                                <MapView
-                                    patients={[{ id: user.patientId, location: currentLocation }]}
-                                    center={mapCenter}
-                                    showSafeZones={false}
-                                />
+                                {mapCenter ? (
+                                    <MapView
+                                        patients={[{ id: user.patientId, location: currentLocation }]}
+                                        center={mapCenter}
+                                        showSafeZones={false}
+                                    />
+                                ) : (
+                                    <Box height="300px" display="flex" alignItems="center" justifyContent="center">
+                                        <Typography color="text.secondary">Loading your location…</Typography>
+                                    </Box>
+                                )}
                                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                                     This map shows your current location being shared with your caretakers.
                                 </Typography>

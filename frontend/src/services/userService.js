@@ -6,6 +6,11 @@ export const userService = {
         return response.data;
     },
 
+    async getUserByPatientId(patientId) {
+        const response = await api.get(`/users/by-patient-id/${patientId}`);
+        return response.data;
+    },
+
     async updateUser(userId, userData) {
         const response = await api.put(`/users/${userId}`, userData);
         return response.data;
@@ -18,3 +23,4 @@ export const userService = {
         return response.data;
     }
 };
+

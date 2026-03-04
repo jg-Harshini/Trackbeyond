@@ -19,12 +19,13 @@ import {
     List,
     ListItem,
     ListItemText,
+    ListItemSecondaryAction,
     Chip,
     Badge,
     IconButton,
     Alert
 } from '@mui/material';
-import { Logout, Add, Notifications, PersonAdd } from '@mui/icons-material';
+import { Logout, Add, Notifications, PersonAdd, Delete } from '@mui/icons-material';
 import MapView from './MapView';
 import { locationService } from '../services/locationService';
 import { safeZoneService } from '../services/safeZoneService';
@@ -50,12 +51,11 @@ const CaretakerDashboard = () => {
         patientId: ''
     });
     const [linkPatientId, setLinkPatientId] = useState('');
-    const [mapCenter, setMapCenter] = useState({ lat: 37.7749, lng: -122.4194 });
+    const [mapCenter, setMapCenter] = useState(null); // null = not yet loaded
 
     useEffect(() => {
         loadUserData();
 
-        // Connect to WebSocket
         websocketService.connect(() => {
             console.log('WebSocket connected for caretaker');
         });
@@ -70,9 +70,12 @@ const CaretakerDashboard = () => {
             loadPatientData(selectedPatient);
             loadLocationHistory(selectedPatient);
 
-            // Subscribe to location updates only for selected patient
             const locationSub = websocketService.subscribeToLocation(selectedPatient, (location) => {
                 updatePatientLocation(selectedPatient, location);
+                // Also update map center live
+                if (location) {
+                    setMapCenter({ lat: location.latitude, lng: location.longitude });
+                }
             });
 
             return () => {
@@ -81,13 +84,11 @@ const CaretakerDashboard = () => {
         }
     }, [selectedPatient]);
 
-    // Separate effect for alerts to cover ALL patients
     useEffect(() => {
         if (patients.length > 0) {
             const subs = patients.map(patient => {
                 return websocketService.subscribeToAlerts(patient.id, (alert) => {
                     setAlerts(prev => {
-                        // Avoid duplicates if alert is already in list
                         if (prev.some(a => a.id === alert.id)) return prev;
                         return [alert, ...prev];
                     });
@@ -105,10 +106,13 @@ const CaretakerDashboard = () => {
             const userData = await userService.getUser(user.userId);
             if (userData.linkedPatientIds && userData.linkedPatientIds.length > 0) {
                 const patientPromises = userData.linkedPatientIds.map(async (patientId) => {
-                    const location = await locationService.getCurrentLocation(patientId).catch(() => null);
+                    const [location, patientUser] = await Promise.all([
+                        locationService.getCurrentLocation(patientId).catch(() => null),
+                        userService.getUserByPatientId(patientId).catch(() => null)
+                    ]);
                     return {
                         id: patientId,
-                        name: `Patient ${patientId.substring(0, 8)}`,
+                        name: patientUser?.fullName || patientUser?.username || `Patient ${patientId.substring(0, 8)}`,
                         location
                     };
                 });
@@ -116,7 +120,15 @@ const CaretakerDashboard = () => {
                 setPatients(patientsData);
 
                 if (patientsData.length > 0) {
-                    setSelectedPatient(patientsData[0].id);
+                    const firstPatientId = patientsData[0].id;
+                    setSelectedPatient(firstPatientId);
+                    // Set initial map center from first patient's location
+                    if (patientsData[0].location) {
+                        setMapCenter({
+                            lat: patientsData[0].location.latitude,
+                            lng: patientsData[0].location.longitude
+                        });
+                    }
                 }
             }
         } catch (error) {
@@ -134,8 +146,8 @@ const CaretakerDashboard = () => {
             setSafeZones(zones);
             setAlerts(patientAlerts);
 
-            // Update map center to patient location
-            const location = await locationService.getCurrentLocation(patientId);
+            // Set map center to patient's actual current location
+            const location = await locationService.getCurrentLocation(patientId).catch(() => null);
             if (location) {
                 setMapCenter({ lat: location.latitude, lng: location.longitude });
             }
@@ -147,7 +159,7 @@ const CaretakerDashboard = () => {
     const loadLocationHistory = async (patientId) => {
         try {
             const history = await locationService.getLocationHistory(patientId);
-            setLocationHistory(history.slice(0, 10)); // Show last 10
+            setLocationHistory(history.slice(0, 10));
         } catch (error) {
             console.error('Error loading location history:', error);
         }
@@ -188,6 +200,15 @@ const CaretakerDashboard = () => {
         }
     };
 
+    const handleDeleteZone = async (zoneId) => {
+        try {
+            await safeZoneService.deleteSafeZone(zoneId);
+            setSafeZones(prev => prev.filter(z => z.id !== zoneId));
+        } catch (error) {
+            console.error('Error deleting safe zone:', error);
+        }
+    };
+
     const handleLinkPatient = async () => {
         try {
             await userService.linkCaretakerToPatient(user.userId, linkPatientId);
@@ -207,6 +228,12 @@ const CaretakerDashboard = () => {
         } catch (error) {
             console.error('Error acknowledging alert:', error);
         }
+    };
+
+    // Helper: get patient display name from patientId
+    const getPatientDisplayName = (patientId) => {
+        const p = patients.find(p => p.id === patientId);
+        return p ? p.name : `Patient ${patientId?.substring(0, 8)}`;
     };
 
     return (
@@ -233,6 +260,7 @@ const CaretakerDashboard = () => {
             <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
                 <Grid container spacing={3}>
                     <Grid item xs={12} md={3}>
+                        {/* Patient List */}
                         <Card>
                             <CardContent>
                                 <Typography variant="h6" gutterBottom>
@@ -245,10 +273,19 @@ const CaretakerDashboard = () => {
                                             button
                                             selected={selectedPatient === patient.id}
                                             onClick={() => setSelectedPatient(patient.id)}
+                                            sx={{ borderRadius: 1, mb: 0.5 }}
                                         >
                                             <ListItemText
-                                                primary={patient.name}
-                                                secondary={patient.location ? 'Location available' : 'No location'}
+                                                primary={
+                                                    <Typography variant="body1" fontWeight={600}>
+                                                        {patient.name}
+                                                    </Typography>
+                                                }
+                                                secondary={
+                                                    <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
+                                                        ID: {patient.id.substring(0, 12)}…
+                                                    </Typography>
+                                                }
                                             />
                                         </ListItem>
                                     ))}
@@ -261,6 +298,7 @@ const CaretakerDashboard = () => {
                             </CardContent>
                         </Card>
 
+                        {/* Safe Zones with delete */}
                         <Card sx={{ mt: 2 }}>
                             <CardContent>
                                 <Typography variant="h6" gutterBottom>
@@ -268,13 +306,29 @@ const CaretakerDashboard = () => {
                                 </Typography>
                                 <List dense>
                                     {safeZones.map((zone) => (
-                                        <ListItem key={zone.id}>
+                                        <ListItem key={zone.id} sx={{ pr: 5 }}>
                                             <ListItemText
                                                 primary={zone.name}
                                                 secondary={`Radius: ${zone.radiusInMeters}m`}
                                             />
+                                            <ListItemSecondaryAction>
+                                                <IconButton
+                                                    edge="end"
+                                                    size="small"
+                                                    color="error"
+                                                    onClick={() => handleDeleteZone(zone.id)}
+                                                    title="Delete zone"
+                                                >
+                                                    <Delete fontSize="small" />
+                                                </IconButton>
+                                            </ListItemSecondaryAction>
                                         </ListItem>
                                     ))}
+                                    {safeZones.length === 0 && (
+                                        <Typography variant="body2" color="text.secondary">
+                                            No safe zones. Click the map to add one.
+                                        </Typography>
+                                    )}
                                 </List>
                                 <Button
                                     fullWidth
@@ -289,6 +343,7 @@ const CaretakerDashboard = () => {
                             </CardContent>
                         </Card>
 
+                        {/* Location History */}
                         <Card sx={{ mt: 2 }}>
                             <CardContent>
                                 <Typography variant="h6" gutterBottom>
@@ -313,19 +368,26 @@ const CaretakerDashboard = () => {
                         </Card>
                     </Grid>
 
+                    {/* Map */}
                     <Grid item xs={12} md={9}>
                         <Card>
                             <CardContent>
                                 <Typography variant="h6" gutterBottom>
                                     Patient Location Map
                                 </Typography>
-                                {selectedPatient ? (
+                                {selectedPatient && mapCenter ? (
                                     <MapView
                                         patients={patients.filter(p => p.id === selectedPatient)}
                                         safeZones={safeZones}
                                         center={mapCenter}
                                         onMapClick={handleMapClick}
                                     />
+                                ) : selectedPatient ? (
+                                    <Box height="500px" display="flex" alignItems="center" justifyContent="center">
+                                        <Typography color="text.secondary">
+                                            Loading patient location…
+                                        </Typography>
+                                    </Box>
                                 ) : (
                                     <Box height="500px" display="flex" alignItems="center" justifyContent="center">
                                         <Typography color="text.secondary">
@@ -399,14 +461,38 @@ const CaretakerDashboard = () => {
                     {alerts.length > 0 ? (
                         <List>
                             {alerts.map((alert) => (
-                                <ListItem key={alert.id}>
+                                <ListItem key={alert.id} alignItems="flex-start">
                                     <ListItemText
-                                        primary={alert.message}
-                                        secondary={new Date(alert.triggeredAt).toLocaleString()}
+                                        primary={
+                                            <Box>
+                                                <Chip
+                                                    label={alert.type}
+                                                    color={alert.type === 'EMERGENCY' ? 'error' : 'warning'}
+                                                    size="small"
+                                                    sx={{ mr: 1 }}
+                                                />
+                                                <Typography variant="body2" component="span" fontWeight={600}>
+                                                    {getPatientDisplayName(alert.patientId)}
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                                                    (ID: {alert.patientId?.substring(0, 12)}…)
+                                                </Typography>
+                                            </Box>
+                                        }
+                                        secondary={
+                                            <Box>
+                                                <Typography variant="body2">{alert.message}</Typography>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    {new Date(alert.triggeredAt).toLocaleString()}
+                                                </Typography>
+                                            </Box>
+                                        }
                                     />
                                     <Button
                                         size="small"
+                                        variant="outlined"
                                         onClick={() => handleAcknowledgeAlert(alert.id)}
+                                        sx={{ mt: 1, ml: 1, flexShrink: 0 }}
                                     >
                                         Acknowledge
                                     </Button>
@@ -421,7 +507,7 @@ const CaretakerDashboard = () => {
                     <Button onClick={() => setOpenAlertsDialog(false)}>Close</Button>
                 </DialogActions>
             </Dialog>
-        </Box >
+        </Box>
     );
 };
 
