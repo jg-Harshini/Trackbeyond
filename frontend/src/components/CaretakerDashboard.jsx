@@ -112,7 +112,7 @@ const CaretakerDashboard = () => {
                     ]);
                     return {
                         id: patientId,
-                        name: patientUser?.fullName || patientUser?.username || `Patient ${patientId.substring(0, 8)}`,
+                        name: patientUser?.username || `Patient ${patientId.substring(0, 8)}`,
                         location
                     };
                 });
