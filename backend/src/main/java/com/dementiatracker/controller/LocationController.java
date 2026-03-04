@@ -35,19 +35,6 @@ public class LocationController {
         }
     }
 
-    @PostMapping("/shipday")
-    @PreAuthorize("hasAnyRole('PATIENT', 'CARETAKER')")
-    public ResponseEntity<?> updateLocationFromShipday(@RequestBody LocationUpdateRequest request) {
-        try {
-            Location location = locationService.fetchAndUpdateLocation(
-                    request.getPatientId(),
-                    request.getTrackingId());
-            return ResponseEntity.ok(location);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
     @GetMapping("/patient/{patientId}/current")
     @PreAuthorize("hasAnyRole('PATIENT', 'CARETAKER')")
     public ResponseEntity<?> getCurrentLocation(@PathVariable String patientId) {

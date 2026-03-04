@@ -10,14 +10,6 @@ export const locationService = {
         return response.data;
     },
 
-    async updateLocationFromShipday(patientId, trackingId) {
-        const response = await api.post('/locations/shipday', {
-            patientId,
-            trackingId
-        });
-        return response.data;
-    },
-
     async getCurrentLocation(patientId) {
         const response = await api.get(`/locations/patient/${patientId}/current`);
         return response.data;
@@ -26,12 +18,6 @@ export const locationService = {
     async getLocationHistory(patientId) {
         const response = await api.get(`/locations/patient/${patientId}/history`);
         return response.data;
-    },
-
-    async getLocationHistoryRange(patientId, start, end) {
-        const response = await api.get(`/locations/patient/${patientId}/history/range`, {
-            params: { start, end }
-        });
-        return response.data;
     }
 };
+

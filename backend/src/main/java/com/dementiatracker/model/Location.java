@@ -15,18 +15,18 @@ import java.time.LocalDateTime;
 public class Location {
     @Id
     private String id;
-    
+
     private String patientId;
-    
+
     private double latitude;
-    
+
     private double longitude;
-    
+
     private double accuracy; // GPS accuracy in meters
-    
+
     private LocalDateTime timestamp;
-    
-    private String source; // "SHIPDAY_API" or "MANUAL"
-    
+
+    private String source; // e.g. "GPS" or "MANUAL"
+
     private String deviceId; // Optional: device identifier
 }

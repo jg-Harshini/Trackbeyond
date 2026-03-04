@@ -1,25 +1,15 @@
-# Java
-**/target/
-**/*.class
-**/*.jar
-**/*.war
-**/*.ear
+# Backend
+backend/target/
+backend/*.log
+backend/*.env
 
-# Spring Boot
-backend/src/main/resources/application.properties
-
-# Node
-**/node_modules/
-**/dist/
+# Frontend
+frontend/node_modules/
+frontend/dist/
 frontend/.env
 frontend/.env.local
 
-# IDEs
-.vscode/
+# IDE
 .idea/
-*.swp
-*.log
-
-# OS
-.DS_Store
-Thumbs.db
+.vscode/
+*.iml

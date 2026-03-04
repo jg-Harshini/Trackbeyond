@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -26,9 +25,6 @@ public class LocationService {
 
     @Autowired
     private AlertService alertService;
-
-    @Autowired
-    private ShipdayService shipdayService;
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -90,19 +86,6 @@ public class LocationService {
                 }
             }
         }
-    }
-
-    /**
-     * Fetch location from Shipday API and update
-     */
-    public Location fetchAndUpdateLocation(String patientId, String trackingId) {
-        Map<String, Double> coords = shipdayService.fetchLocation(trackingId);
-
-        return updateLocation(
-                patientId,
-                coords.get("latitude"),
-                coords.get("longitude"),
-                "SHIPDAY_API");
     }
 
     /**

@@ -11,5 +11,4 @@ public class LocationUpdateRequest {
     private String patientId;
     private double latitude;
     private double longitude;
-    private String trackingId; // Optional: Shipday tracking ID
 }
