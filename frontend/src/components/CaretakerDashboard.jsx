@@ -110,11 +110,26 @@ const CaretakerDashboard = () => {
         try {
             const userData = await userService.getUser(user.userId);
             if (userData.linkedPatientIds && userData.linkedPatientIds.length > 0) {
+                console.log('Caretaker linked patients:', userData.linkedPatientIds);
                 const patientPromises = userData.linkedPatientIds.map(async (patientId) => {
+                    console.log(`Resolving data for patient: ${patientId}`);
                     const [location, patientUser] = await Promise.all([
-                        locationService.getCurrentLocation(patientId).catch(() => null),
-                        userService.getUserByPatientId(patientId).catch(() => null)
+                        locationService.getCurrentLocation(patientId).catch(err => {
+                            console.warn(`Could not fetch location for ${patientId}:`, err);
+                            return null;
+                        }),
+                        userService.getUserByPatientId(patientId).catch(err => {
+                            console.warn(`Could not resolve name for ${patientId}:`, err);
+                            return null;
+                        })
                     ]);
+
+                    if (patientUser) {
+                        console.log(`Successfully resolved name for ${patientId}: ${patientUser.username}`);
+                    } else {
+                        console.error(`Name resolution FAILED for ${patientId}`);
+                    }
+
                     return {
                         id: patientId,
                         name: patientUser?.username || `Patient ${patientId.substring(0, 8)}`,
@@ -159,6 +174,63 @@ const CaretakerDashboard = () => {
         } catch (error) {
             console.error('Error loading patient data:', error);
         }
+    };
+
+    const loadMedications = async (patientId) => {
+        try {
+            const data = await medicationService.getPatientMedications(patientId);
+            setMedications(data);
+        } catch (error) {
+            console.error('Error loading medications:', error);
+        }
+    };
+
+    const handleAddMedication = async () => {
+        console.log('Attempting to add medication:', newMed, 'for patient:', selectedPatient);
+        try {
+            const med = {
+                ...newMed,
+                patientId: selectedPatient,
+                createdByCaretakerId: user.userId,
+                scheduleTimes: newMed.scheduleTimes.filter(t => t.trim() !== '')
+            };
+            const result = await medicationService.createMedication(med);
+            console.log('Medication added successfully:', result);
+            setOpenMedDialog(false);
+            setNewMed({ medicationName: '', dosage: '', scheduleTimes: [''], notes: '' });
+            loadMedications(selectedPatient);
+        } catch (error) {
+            console.error('Error adding medication:', error);
+            alert('Failed to add medication. Please check the console or backend logs.');
+        }
+    };
+
+    const handleDeleteMedication = async (id) => {
+        if (window.confirm('Are you sure you want to remove this medication?')) {
+            try {
+                await medicationService.deleteMedication(id);
+                loadMedications(selectedPatient);
+            } catch (error) {
+                console.error('Error deleting medication:', error);
+            }
+        }
+    };
+
+    const addTimeSlot = () => {
+        setNewMed({ ...newMed, scheduleTimes: [...newMed.scheduleTimes, ''] });
+    };
+
+    const removeTimeSlot = (index) => {
+        setNewMed({
+            ...newMed,
+            scheduleTimes: newMed.scheduleTimes.filter((_, i) => i !== index)
+        });
+    };
+
+    const updateTimeSlot = (index, value) => {
+        const newTimes = [...newMed.scheduleTimes];
+        newTimes[index] = value;
+        setNewMed({ ...newMed, scheduleTimes: newTimes });
     };
 
     const loadLocationHistory = async (patientId) => {
@@ -214,51 +286,6 @@ const CaretakerDashboard = () => {
         }
     };
 
-    const loadMedications = async (patientId) => {
-        try {
-            const meds = await medicationService.getPatientMedications(patientId);
-            setMedications(meds);
-        } catch (error) {
-            console.error('Error loading medications:', error);
-        }
-    };
-
-    const handleAddMedication = async () => {
-        try {
-            const med = {
-                ...newMed,
-                patientId: selectedPatient,
-                createdByCaretakerId: user.userId,
-                scheduleTimes: newMed.scheduleTimes.filter(t => t.trim() !== '')
-            };
-            await medicationService.createMedication(med);
-            setOpenMedDialog(false);
-            setNewMed({ medicationName: '', dosage: '', scheduleTimes: [''], notes: '' });
-            loadMedications(selectedPatient);
-        } catch (error) {
-            console.error('Error adding medication:', error);
-        }
-    };
-
-    const handleDeleteMedication = async (medId) => {
-        try {
-            await medicationService.deleteMedication(medId);
-            setMedications(prev => prev.filter(m => m.id !== medId));
-        } catch (error) {
-            console.error('Error deleting medication:', error);
-        }
-    };
-
-    const addTimeSlot = () => setNewMed(prev => ({ ...prev, scheduleTimes: [...prev.scheduleTimes, ''] }));
-    const updateTimeSlot = (index, value) => {
-        const times = [...newMed.scheduleTimes];
-        times[index] = value;
-        setNewMed(prev => ({ ...prev, scheduleTimes: times }));
-    };
-    const removeTimeSlot = (index) => {
-        const times = newMed.scheduleTimes.filter((_, i) => i !== index);
-        setNewMed(prev => ({ ...prev, scheduleTimes: times.length ? times : [''] }));
-    };
 
     const handleLinkPatient = async () => {
         try {
