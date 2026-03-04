@@ -17,7 +17,8 @@ import {
     ListItemText,
     Divider
 } from '@mui/material';
-import { Logout, LocationOn, ContentCopy, Warning, Sensors } from '@mui/icons-material';
+import { Logout, LocationOn, ContentCopy, Warning, WifiTethering } from '@mui/icons-material';
+
 import { locationService } from '../services/locationService';
 import { alertService } from '../services/alertService';
 import { medicationService } from '../services/medicationService';
@@ -394,7 +395,7 @@ const PatientDashboard = () => {
                         <Card>
                             <CardContent>
                                 <Typography variant="h6" gutterBottom>
-                                    <Sensors sx={{ mr: 1, verticalAlign: 'middle' }} />
+                                    <WifiTethering sx={{ mr: 1, verticalAlign: 'middle' }} />
                                     Motion Sensor
                                 </Typography>
                                 {sensorError && (
@@ -409,7 +410,7 @@ const PatientDashboard = () => {
                                             Enable the motion sensor to start fall and freezing-of-gait detection.
                                             On iPhone, a permission prompt will appear.
                                         </Typography>
-                                        <Button variant="contained" startIcon={<Sensors />} onClick={enableSensor}>
+                                        <Button variant="contained" startIcon={<WifiTethering />} onClick={enableSensor}>
                                             Enable Motion Sensor
                                         </Button>
                                     </Box>
