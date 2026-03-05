@@ -40,7 +40,8 @@ public class Alert {
         ZONE_EXIT, // Patient exited safe zone
         ZONE_ENTRY, // Patient re-entered safe zone
         EMERGENCY, // Patient triggered emergency alert
-        LOW_BATTERY, // Device battery low (future feature)
-        NO_MOVEMENT // No movement detected (future feature)
+        FALL, // Fall detected via accelerometer
+        FOG, // Freezing of Gait detected via accelerometer
+        MEDICATION_DUE // Medication not taken on schedule
     }
 }

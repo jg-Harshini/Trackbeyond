@@ -70,6 +70,13 @@ public class UserService {
     }
 
     /**
+     * Get user by shareable patient ID (UUID)
+     */
+    public Optional<User> getUserByPatientId(String patientId) {
+        return userRepository.findByPatientId(patientId);
+    }
+
+    /**
      * Get user by ID
      */
     public Optional<User> getUserById(String userId) {

@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin
 public class UserController {
 
     @Autowired
@@ -21,6 +20,21 @@ public class UserController {
         return userService.getUserById(userId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/by-patient-id/{patientId}")
+    @PreAuthorize("hasAnyRole('PATIENT', 'CARETAKER')")
+    public ResponseEntity<?> getUserByPatientId(@PathVariable String patientId) {
+        System.out.println("Searching for user with patientId: " + patientId);
+        return userService.getUserByPatientId(patientId)
+                .map(user -> {
+                    System.out.println("Found user: " + user.getUsername() + " for patientId: " + patientId);
+                    return ResponseEntity.ok(user);
+                })
+                .orElseGet(() -> {
+                    System.out.println("No user found for patientId: " + patientId);
+                    return ResponseEntity.notFound().build();
+                });
     }
 
     @PutMapping("/{userId}")

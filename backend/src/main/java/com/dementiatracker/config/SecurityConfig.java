@@ -22,7 +22,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -70,8 +69,10 @@ public class SecurityConfig {
                 .antMatchers("/api/alerts/*/acknowledge").hasRole("CARETAKER")
                 .antMatchers("/api/patients/**").hasAnyRole("PATIENT", "CARETAKER")
                 .antMatchers("/api/locations/**").hasAnyRole("PATIENT", "CARETAKER")
-                .antMatchers("/api/safezones/**").hasRole("CARETAKER")
+                .antMatchers("/api/safezones/**").hasAnyRole("PATIENT", "CARETAKER")
                 .antMatchers("/api/alerts/**").hasAnyRole("PATIENT", "CARETAKER")
+                .antMatchers("/api/medications/**").hasAnyRole("PATIENT", "CARETAKER")
+                .antMatchers("/api/users/**").hasAnyRole("PATIENT", "CARETAKER")
                 .anyRequest().authenticated();
 
         http.headers()

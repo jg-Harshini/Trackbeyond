@@ -76,10 +76,57 @@ public class AlertService {
         alert.setAcknowledged(false);
 
         Alert savedAlert = alertRepository.save(alert);
-
-        // Send real-time notification via WebSocket
         messagingTemplate.convertAndSend("/topic/alerts/" + patientId, savedAlert);
+        return savedAlert;
+    }
 
+    /**
+     * Create fall detection alert
+     */
+    public Alert createFallAlert(String patientId) {
+        Alert alert = new Alert();
+        alert.setPatientId(patientId);
+        alert.setType(Alert.AlertType.FALL);
+        alert.setMessage("FALL DETECTED: A potential fall has been detected for this patient.");
+        alert.setTriggeredAt(LocalDateTime.now());
+        alert.setAcknowledged(false);
+
+        Alert savedAlert = alertRepository.save(alert);
+        messagingTemplate.convertAndSend("/topic/alerts/" + patientId, savedAlert);
+        return savedAlert;
+    }
+
+    /**
+     * Create Freezing of Gait (FOG) alert
+     */
+    public Alert createFogAlert(String patientId) {
+        Alert alert = new Alert();
+        alert.setPatientId(patientId);
+        alert.setType(Alert.AlertType.FOG);
+        alert.setMessage(
+                "FREEZING OF GAIT: Rhythmic trembling pattern detected — patient may be experiencing freezing of gait.");
+        alert.setTriggeredAt(LocalDateTime.now());
+        alert.setAcknowledged(false);
+
+        Alert savedAlert = alertRepository.save(alert);
+        messagingTemplate.convertAndSend("/topic/alerts/" + patientId, savedAlert);
+        return savedAlert;
+    }
+
+    /**
+     * Create medication due alert
+     */
+    public Alert createMedicationAlert(String patientId, String medicationName, String scheduledTime) {
+        Alert alert = new Alert();
+        alert.setPatientId(patientId);
+        alert.setType(Alert.AlertType.MEDICATION_DUE);
+        alert.setMessage(
+                String.format("MEDICATION DUE: %s scheduled at %s has not been taken.", medicationName, scheduledTime));
+        alert.setTriggeredAt(LocalDateTime.now());
+        alert.setAcknowledged(false);
+
+        Alert savedAlert = alertRepository.save(alert);
+        messagingTemplate.convertAndSend("/topic/alerts/" + patientId, savedAlert);
         return savedAlert;
     }
 

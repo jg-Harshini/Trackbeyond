@@ -11,7 +11,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/safezones")
-@CrossOrigin
 public class SafeZoneController {
 
     @Autowired

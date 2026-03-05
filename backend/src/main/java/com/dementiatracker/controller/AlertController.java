@@ -11,7 +11,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/alerts")
-@CrossOrigin
 public class AlertController {
 
     @Autowired
@@ -47,6 +46,42 @@ public class AlertController {
     public ResponseEntity<?> triggerEmergencyAlert(@PathVariable String patientId) {
         try {
             Alert alert = alertService.createEmergencyAlert(patientId);
+            return ResponseEntity.ok(alert);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/fall/{patientId}")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<?> triggerFallAlert(@PathVariable String patientId) {
+        try {
+            Alert alert = alertService.createFallAlert(patientId);
+            return ResponseEntity.ok(alert);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/fog/{patientId}")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<?> triggerFogAlert(@PathVariable String patientId) {
+        try {
+            Alert alert = alertService.createFogAlert(patientId);
+            return ResponseEntity.ok(alert);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/medication/{patientId}")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<?> triggerMedicationAlert(
+            @PathVariable String patientId,
+            @RequestParam String medicationName,
+            @RequestParam String scheduledTime) {
+        try {
+            Alert alert = alertService.createMedicationAlert(patientId, medicationName, scheduledTime);
             return ResponseEntity.ok(alert);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
