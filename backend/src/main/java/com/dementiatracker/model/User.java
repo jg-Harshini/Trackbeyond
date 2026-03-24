@@ -18,32 +18,32 @@ import java.util.Set;
 public class User {
     @Id
     private String id;
-    
+
     @Indexed(unique = true)
     private String username;
-    
+
     private String password; // Will be hashed
-    
+
     private String email;
-    
+
     private String fullName;
-    
+
     private String phoneNumber;
-    
+
     private Role role; // PATIENT or CARETAKER
-    
+
     private String patientId; // For patients: their own ID, For caretakers: null
-    
+
     private Set<String> linkedPatientIds = new HashSet<>(); // For caretakers: list of patient IDs they monitor
-    
+
     private Set<String> linkedCaretakerIds = new HashSet<>(); // For patients: list of caretaker IDs
-    
+
     private LocalDateTime createdAt;
-    
+
     private LocalDateTime updatedAt;
-    
+
     private boolean enabled = true;
-    
+
     public enum Role {
         PATIENT,
         CARETAKER
