@@ -3,6 +3,7 @@ package com.dementiatracker.service;
 import com.dementiatracker.model.Alert;
 import com.dementiatracker.model.Location;
 import com.dementiatracker.model.SafeZone;
+import com.dementiatracker.model.Report;
 import com.dementiatracker.repository.AlertRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -19,6 +20,9 @@ public class AlertService {
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
+
+    @Autowired
+    private ReportService reportService;
 
     /**
      * Create and send alert when patient exits safe zone
@@ -92,6 +96,11 @@ public class AlertService {
         alert.setAcknowledged(false);
 
         Alert savedAlert = alertRepository.save(alert);
+
+        // Generate formal report
+        reportService.generateReport(patientId, Report.ReportType.FALL,
+                "Automated report: A fall was detected by the patient's device sensors.");
+
         messagingTemplate.convertAndSend("/topic/alerts/" + patientId, savedAlert);
         return savedAlert;
     }
@@ -109,6 +118,11 @@ public class AlertService {
         alert.setAcknowledged(false);
 
         Alert savedAlert = alertRepository.save(alert);
+
+        // Generate formal report
+        reportService.generateReport(patientId, Report.ReportType.FOG,
+                "Automated report: Freezing of Gait (FOG) symptoms were detected by the patient's device sensors.");
+
         messagingTemplate.convertAndSend("/topic/alerts/" + patientId, savedAlert);
         return savedAlert;
     }

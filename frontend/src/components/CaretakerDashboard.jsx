@@ -24,13 +24,14 @@ import {
     IconButton,
     Alert
 } from '@mui/material';
-import { Logout, Add, Notifications, PersonAdd, Delete } from '@mui/icons-material';
+import { Logout, Add, Notifications, PersonAdd, Delete, Assignment } from '@mui/icons-material';
 import MapView from './MapView';
 import { locationService } from '../services/locationService';
 import { safeZoneService } from '../services/safeZoneService';
 import { alertService } from '../services/alertService';
 import { userService } from '../services/userService';
 import { medicationService } from '../services/medicationService';
+import { reportService } from '../services/reportService';
 import websocketService from '../services/websocketService';
 
 const CaretakerDashboard = () => {
@@ -42,6 +43,8 @@ const CaretakerDashboard = () => {
     const [openZoneDialog, setOpenZoneDialog] = useState(false);
     const [openLinkDialog, setOpenLinkDialog] = useState(false);
     const [openAlertsDialog, setOpenAlertsDialog] = useState(false);
+    const [openReportsDialog, setOpenReportsDialog] = useState(false);
+    const [reports, setReports] = useState([]);
     const [locationHistory, setLocationHistory] = useState([]);
     const [newZone, setNewZone] = useState({
         name: '',
@@ -75,6 +78,7 @@ const CaretakerDashboard = () => {
             loadPatientData(selectedPatient);
             loadLocationHistory(selectedPatient);
             loadMedications(selectedPatient);
+            loadReports(selectedPatient);
 
             const locationSub = websocketService.subscribeToLocation(selectedPatient, (location) => {
                 updatePatientLocation(selectedPatient, location);
@@ -173,6 +177,15 @@ const CaretakerDashboard = () => {
             }
         } catch (error) {
             console.error('Error loading patient data:', error);
+        }
+    };
+
+    const loadReports = async (patientId) => {
+        try {
+            const data = await reportService.getPatientReports(patientId);
+            setReports(data);
+        } catch (error) {
+            console.error('Error loading reports:', error);
         }
     };
 
@@ -477,6 +490,26 @@ const CaretakerDashboard = () => {
                                 </Button>
                             </CardContent>
                         </Card>
+
+                        {/* Reports Section */}
+                        <Card sx={{ mt: 2 }}>
+                            <CardContent>
+                                <Typography variant="h6" gutterBottom>📋 Reports</Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                    View automated FOG and Fall reports for this patient.
+                                </Typography>
+                                <Button
+                                    fullWidth
+                                    variant="outlined"
+                                    color="info"
+                                    startIcon={<Assignment />}
+                                    onClick={() => setOpenReportsDialog(true)}
+                                    disabled={!selectedPatient}
+                                >
+                                    View Reports
+                                </Button>
+                            </CardContent>
+                        </Card>
                     </Grid>
 
                     {/* Map */}
@@ -658,6 +691,46 @@ const CaretakerDashboard = () => {
                         disabled={!newMed.medicationName || !newMed.dosage}>
                         Add
                     </Button>
+                </DialogActions>
+            </Dialog>
+            {/* Reports Dialog */}
+            <Dialog open={openReportsDialog} onClose={() => setOpenReportsDialog(false)} maxWidth="md" fullWidth>
+                <DialogTitle>Patient Reports: {getPatientDisplayName(selectedPatient)}</DialogTitle>
+                <DialogContent>
+                    {reports.length > 0 ? (
+                        <List>
+                            {reports.map((report) => (
+                                <ListItem key={report.id} divider>
+                                    <ListItemText
+                                        primary={
+                                            <Box display="flex" alignItems="center" gap={1}>
+                                                <Chip
+                                                    label={report.type}
+                                                    color={report.type === 'FALL' ? 'error' : 'warning'}
+                                                    size="small"
+                                                />
+                                                <Typography variant="subtitle1" fontWeight={600}>
+                                                    Incident at {new Date(report.generatedAt).toLocaleString()}
+                                                </Typography>
+                                            </Box>
+                                        }
+                                        secondary={
+                                            <Typography variant="body2" sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>
+                                                {report.description}
+                                            </Typography>
+                                        }
+                                    />
+                                </ListItem>
+                            ))}
+                        </List>
+                    ) : (
+                        <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
+                            No formal reports generated for this patient yet.
+                        </Typography>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpenReportsDialog(false)}>Close</Button>
                 </DialogActions>
             </Dialog>
         </Box>

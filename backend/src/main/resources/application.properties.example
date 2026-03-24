@@ -6,15 +6,17 @@ server.port=8080
 
 # MongoDB Atlas Configuration
 # Get your connection string from MongoDB Atlas dashboard
-spring.data.mongodb.uri=${MONGODB_URI:mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority}
+spring.data.mongodb.uri=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority
 spring.data.mongodb.database=dementia_tracker
 
 # JWT Configuration
 # Generate a secure random string for production (at least 256 bits)
-jwt.secret=${JWT_SECRET:CHANGE_THIS_TO_A_SECURE_RANDOM_STRING_AT_LEAST_256_BITS_LONG}
+jwt.secret=<your_secure_jwt_secret_here>
 jwt.expiration=86400000
 
 # CORS Configuration
 # Add your frontend URLs (comma-separated)
 # In production, this should include your frontend deployment link
-cors.allowed.origins=${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+
+
+

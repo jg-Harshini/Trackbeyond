@@ -2,3 +2,5 @@ target/
 *.log
 *.env
 application.properties
+maven/
+maven.zip
