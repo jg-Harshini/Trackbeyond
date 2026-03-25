@@ -34,6 +34,20 @@ import { medicationService } from '../services/medicationService';
 import { reportService } from '../services/reportService';
 import websocketService from '../services/websocketService';
 
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371000; // meters
+    const toRad = (value) => (value * Math.PI) / 180;
+
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
 const CaretakerDashboard = () => {
     const { user, logout } = useAuth();
     const [patients, setPatients] = useState([]);
@@ -46,6 +60,7 @@ const CaretakerDashboard = () => {
     const [openReportsDialog, setOpenReportsDialog] = useState(false);
     const [reports, setReports] = useState([]);
     const [locationHistory, setLocationHistory] = useState([]);
+    const [lastStableLocation, setLastStableLocation] = useState(null);
     const [newZone, setNewZone] = useState({
         name: '',
         centerLatitude: 0,
@@ -81,17 +96,45 @@ const CaretakerDashboard = () => {
             loadReports(selectedPatient);
 
             const locationSub = websocketService.subscribeToLocation(selectedPatient, (location) => {
-                updatePatientLocation(selectedPatient, location);
-                if (location) {
-                    setMapCenter({ lat: location.latitude, lng: location.longitude });
+                if (!location) return;
+
+                // Ignore poor GPS accuracy
+                if (location.accuracy && location.accuracy > 30) {
+                    console.log('Ignored due to poor accuracy');
+                    return;
                 }
+
+                if (lastStableLocation) {
+                    const distance = calculateDistance(
+                        lastStableLocation.latitude,
+                        lastStableLocation.longitude,
+                        location.latitude,
+                        location.longitude
+                    );
+
+                    // Ignore small jitter (<10m)
+                    if (distance < 10) {
+                        console.log('Ignored jitter:', distance);
+                        return;
+                    }
+                }
+
+                // Accept valid movement
+                setLastStableLocation(location);
+
+                updatePatientLocation(selectedPatient, location);
+
+                setMapCenter({
+                    lat: location.latitude,
+                    lng: location.longitude
+                });
             });
 
             return () => {
                 if (locationSub) locationSub.unsubscribe();
             };
         }
-    }, [selectedPatient]);
+    }, [selectedPatient, lastStableLocation]);
 
     useEffect(() => {
         if (patients.length > 0) {
