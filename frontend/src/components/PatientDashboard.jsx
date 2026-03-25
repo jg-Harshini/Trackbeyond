@@ -27,7 +27,10 @@ import websocketService from '../services/websocketService';
 import MapView from './MapView';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const FALL_THRESHOLD = 15;        // Lowered from 25 for better sensitivity
+const FALL_THRESHOLD = 25;        // m/s² impact spike required
+const FREE_FALL_THRESHOLD = 5.0;  // m/s² below this = weightless (dropping)
+const FREE_FALL_DURATION = 100;   // Increased from 50ms to 100ms to filter flicks
+const IMPACT_WINDOW = 500;        // ms following free fall where impact must occur
 const STILL_MIN = 8.5;            // m/s² lower bound for still (near gravity)
 const STILL_MAX = 11.5;           // m/s² upper bound for still (near gravity)
 const STILL_DURATION = 1500;      // ms still after impact = fall confirmed
@@ -68,6 +71,7 @@ const PatientDashboard = () => {
     const [medAlertsSent, setMedAlertsSent] = useState({}); // prevent duplicate alerts
 
     // Refs for sensor detection logic
+    const freeFallStartRef = useRef(null);
     const impactTimeRef = useRef(null);
     const stillStartRef = useRef(null);
     const fogSamplesRef = useRef([]);
@@ -217,33 +221,70 @@ const PatientDashboard = () => {
         }
 
         // ── Fall detection ─────────────────────────────────────────────────
-        // 1. Detect Impact
-        if (magnitude > FALL_THRESHOLD) {
-            console.log(`[Fall Detection] Impact detected! Magnitude: ${magnitude.toFixed(2)}`);
-            setDebugStatus(`Impact Detected: ${magnitude.toFixed(1)} m/s²`);
-            impactTimeRef.current = now;
-            stillStartRef.current = null;
-        }
-
-        // 2. Detect Stillness after Impact (Magnitude should return to ~9.8 m/s² due to gravity)
-        if (impactTimeRef.current && magnitude >= STILL_MIN && magnitude <= STILL_MAX) {
-            if (!stillStartRef.current) {
-                console.log(`[Fall Detection] Device is now still. Starting countdown...`);
-                setDebugStatus('Impact detected. Searching for post-fall stillness...');
-                stillStartRef.current = now;
-            }
-
-            if (now - stillStartRef.current > STILL_DURATION) {
-                if (now - lastFallAlertRef.current > FALL_COOLDOWN) {
-                    console.log(`[Fall Detection] FALL CONFIRMED! (Still for ${STILL_DURATION}ms)`);
-                    lastFallAlertRef.current = now;
-                    impactTimeRef.current = null;
-                    stillStartRef.current = null;
-                    handleFallDetected();
+        // Phase 1: Detect Free Fall (Weightlessness)
+        if (magnitude < FREE_FALL_THRESHOLD) {
+            if (!freeFallStartRef.current) freeFallStartRef.current = now;
+            if (now - freeFallStartRef.current > FREE_FALL_DURATION) {
+                if (debugStatus !== 'Free fall detected! Waiting for impact...') {
+                    console.log(`[Fall Detection] Free fall detected! Duration: ${now - freeFallStartRef.current}ms`);
+                    setDebugStatus('Free fall detected! Waiting for impact...');
                 }
             }
-        } else if (magnitude > STILL_THRESHOLD) {
-            stillStartRef.current = null;
+        } else {
+            // If we were in free fall and it just ended, check if we hit something high
+            const wasInFreeFall = freeFallStartRef.current && (now - freeFallStartRef.current > FREE_FALL_DURATION);
+            
+            // Phase 2: Detect Impact (High G spike)
+            if (magnitude > FALL_THRESHOLD) {
+                // To be a fall, impact MUST follow a free fall within a short window
+                if (wasInFreeFall) {
+                    console.log(`[Fall Detection] Impact detected after free fall! Magnitude: ${magnitude.toFixed(2)}`);
+                    setDebugStatus(`Impact! Magnitude: ${magnitude.toFixed(1)}`);
+                    impactTimeRef.current = now;
+                    freeFallStartRef.current = null; // Reset free fall after impact
+                    stillStartRef.current = null;
+                } else {
+                    // Just a fast movement (no free fall)
+                    // console.log(`[Fall Detection] Fast movement ignored (no free fall). Magnitude: ${magnitude.toFixed(2)}`);
+                }
+            }
+
+            // Reset free fall if no impact occurs within window
+            if (freeFallStartRef.current && (now - freeFallStartRef.current > IMPACT_WINDOW)) {
+                freeFallStartRef.current = null;
+            }
+        }
+
+        // Phase 3: Detect Stillness after Impact (Magnitude should return to ~9.8 m/s² due to gravity)
+        if (impactTimeRef.current && (now - impactTimeRef.current < 2000)) { // 2s window to find stillness
+            if (magnitude >= STILL_MIN && magnitude <= STILL_MAX) {
+                if (!stillStartRef.current) {
+                    console.log(`[Fall Detection] Impacted device is now still. Starting countdown...`);
+                    setDebugStatus('Impacted. Checking for prolonged stillness...');
+                    stillStartRef.current = now;
+                }
+
+                if (now - stillStartRef.current > STILL_DURATION) {
+                    if (now - lastFallAlertRef.current > FALL_COOLDOWN) {
+                        console.log(`[Fall Detection] FALL CONFIRMED!`);
+                        setDebugStatus('FALL CONFIRMED!');
+                        lastFallAlertRef.current = now;
+                        impactTimeRef.current = null;
+                        stillStartRef.current = null;
+                        handleFallDetected();
+                    }
+                }
+            } else if (magnitude > STILL_MAX + 2) { // significant movement after impact
+                if (stillStartRef.current) {
+                    console.log(`[Fall Detection] Device moved after impact. Resetting.`);
+                    setDebugStatus('Movement detected. Resetting...');
+                    stillStartRef.current = null;
+                    impactTimeRef.current = null;
+                }
+            }
+        } else if (impactTimeRef.current && (now - impactTimeRef.current >= 2000)) {
+            // Impact timed out without stillness
+            impactTimeRef.current = null;
         }
 
         // ── FOG detection (zero-crossing rate on Z axis) ───────────────────
