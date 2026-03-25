@@ -27,8 +27,9 @@ import websocketService from '../services/websocketService';
 import MapView from './MapView';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const FALL_THRESHOLD = 25;        // m/s² spike considered a fall
-const STILL_THRESHOLD = 3;        // m/s² — below this = lying still
+const FALL_THRESHOLD = 15;        // Lowered from 25 for better sensitivity
+const STILL_MIN = 8.5;            // m/s² lower bound for still (near gravity)
+const STILL_MAX = 11.5;           // m/s² upper bound for still (near gravity)
 const STILL_DURATION = 1500;      // ms still after impact = fall confirmed
 const FOG_MIN_HZ = 3;             // Minimum FOG frequency (Hz)
 const FOG_MAX_HZ = 8;             // Maximum FOG frequency (Hz)
@@ -52,6 +53,9 @@ const PatientDashboard = () => {
     const [sensorError, setSensorError] = useState(null);
     const [fallStatus, setFallStatus] = useState(null);   // 'detected' | null
     const [fogStatus, setFogStatus] = useState(null);     // 'detected' | null
+    const [liveMagnitude, setLiveMagnitude] = useState(0);
+    const [peakMagnitude, setPeakMagnitude] = useState(0);
+    const [debugStatus, setDebugStatus] = useState('Monitoring...');
 
     // Medication states
     const [medications, setMedications] = useState([]);
@@ -201,16 +205,37 @@ const PatientDashboard = () => {
         const magnitude = Math.sqrt(x * x + y * y + z * z);
         const now = Date.now();
 
+        // Always track the absolute peak
+        if (magnitude > peakMagnitude) {
+            setPeakMagnitude(magnitude);
+        }
+
+        // Update live display (throttled to ~10fps to avoid UI lag)
+        if (!window._lastSensorUIUpdate || now - window._lastSensorUIUpdate > 100) {
+            setLiveMagnitude(magnitude);
+            window._lastSensorUIUpdate = now;
+        }
+
         // ── Fall detection ─────────────────────────────────────────────────
+        // 1. Detect Impact
         if (magnitude > FALL_THRESHOLD) {
+            console.log(`[Fall Detection] Impact detected! Magnitude: ${magnitude.toFixed(2)}`);
+            setDebugStatus(`Impact Detected: ${magnitude.toFixed(1)} m/s²`);
             impactTimeRef.current = now;
             stillStartRef.current = null;
         }
 
-        if (impactTimeRef.current && magnitude < STILL_THRESHOLD) {
-            if (!stillStartRef.current) stillStartRef.current = now;
+        // 2. Detect Stillness after Impact (Magnitude should return to ~9.8 m/s² due to gravity)
+        if (impactTimeRef.current && magnitude >= STILL_MIN && magnitude <= STILL_MAX) {
+            if (!stillStartRef.current) {
+                console.log(`[Fall Detection] Device is now still. Starting countdown...`);
+                setDebugStatus('Impact detected. Searching for post-fall stillness...');
+                stillStartRef.current = now;
+            }
+
             if (now - stillStartRef.current > STILL_DURATION) {
                 if (now - lastFallAlertRef.current > FALL_COOLDOWN) {
+                    console.log(`[Fall Detection] FALL CONFIRMED! (Still for ${STILL_DURATION}ms)`);
                     lastFallAlertRef.current = now;
                     impactTimeRef.current = null;
                     stillStartRef.current = null;
@@ -451,13 +476,34 @@ const PatientDashboard = () => {
                                 ) : (
                                     <Box>
                                         <Chip label="✅ Sensor Active" color="success" sx={{ mb: 1 }} />
-                                        <Typography variant="body2" color="text.secondary">
-                                            Fall detection and freezing of gait monitoring are running.
-                                        </Typography>
-                                        <Box sx={{ mt: 2 }}>
-                                            <Typography variant="caption" color="text.secondary">
-                                                Detects falls (sharp acceleration spike + stillness) and FOG (3–8 Hz rhythmic trembling).
+                                        <Box sx={{ mt: 2, p: 2, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #dee2e6' }}>
+                                            <Typography variant="subtitle2" color="primary" gutterBottom>
+                                                🔍 Live Sensor Debugger
                                             </Typography>
+                                            <Grid container spacing={1}>
+                                                <Grid item xs={6}>
+                                                    <Typography variant="caption" display="block">Current Magnitude:</Typography>
+                                                    <Typography variant="body2" fontWeight="bold">
+                                                        {liveMagnitude.toFixed(2)} m/s²
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item xs={6}>
+                                                    <Typography variant="caption" display="block">Peak Detected:</Typography>
+                                                    <Typography variant="body2" fontWeight="bold" color="error">
+                                                        {peakMagnitude.toFixed(2)} m/s²
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item xs={12}>
+                                                    <Typography variant="caption" display="block">Status:</Typography>
+                                                    <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
+                                                        {debugStatus}
+                                                    </Typography>
+                                                </Grid>
+                                            </Grid>
+                                            <Button size="small" variant="text" sx={{ mt: 1 }}
+                                                onClick={() => { setPeakMagnitude(0); setDebugStatus('Monitoring...'); }}>
+                                                Reset Peak
+                                            </Button>
                                         </Box>
                                     </Box>
                                 )}
