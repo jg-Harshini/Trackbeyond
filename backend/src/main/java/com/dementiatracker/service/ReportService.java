@@ -28,8 +28,7 @@ public class ReportService {
         return reportRepository.findByPatientIdOrderByGeneratedAtDesc(patientId);
     }
 
-    public long countRecentIncidents(String patientId) {
-        LocalDateTime twentyFourHoursAgo = LocalDateTime.now().minusHours(24);
-        return reportRepository.countByPatientIdAndGeneratedAtAfter(patientId, twentyFourHoursAgo);
+    public long countTotalIncidents(String patientId) {
+        return reportRepository.countByPatientId(patientId);
     }
 }

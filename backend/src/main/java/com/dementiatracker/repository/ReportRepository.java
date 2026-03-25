@@ -9,5 +9,6 @@ import java.util.List;
 @Repository
 public interface ReportRepository extends MongoRepository<Report, String> {
     List<Report> findByPatientIdOrderByGeneratedAtDesc(String patientId);
+    long countByPatientId(String patientId);
     long countByPatientIdAndGeneratedAtAfter(String patientId, java.time.LocalDateTime timestamp);
 }
