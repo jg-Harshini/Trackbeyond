@@ -101,6 +101,11 @@ public class AlertService {
         reportService.generateReport(patientId, Report.ReportType.FALL,
                 "Automated report: A fall was detected by the patient's device sensors.");
 
+        // Check for frequent incidents (5+) in the last 24h
+        if (reportService.countRecentIncidents(patientId) > 5) {
+            triggerHospitalAlert(patientId);
+        }
+
         messagingTemplate.convertAndSend("/topic/alerts/" + patientId, savedAlert);
         return savedAlert;
     }
@@ -123,8 +128,24 @@ public class AlertService {
         reportService.generateReport(patientId, Report.ReportType.FOG,
                 "Automated report: Freezing of Gait (FOG) symptoms were detected by the patient's device sensors.");
 
+        // Check for frequent incidents (5+) in the last 24h
+        if (reportService.countRecentIncidents(patientId) > 5) {
+            triggerHospitalAlert(patientId);
+        }
+
         messagingTemplate.convertAndSend("/topic/alerts/" + patientId, savedAlert);
         return savedAlert;
+    }
+
+    private void triggerHospitalAlert(String patientId) {
+        Alert alert = new Alert();
+        alert.setPatientId(patientId);
+        alert.setType(Alert.AlertType.EMERGENCY);
+        alert.setMessage("URGENT: This patient has experienced more than 5 Fall/FOG incidents in the last 24 hours. Please take them to a hospital for evaluation.");
+        alert.setTriggeredAt(LocalDateTime.now());
+        alert.setAcknowledged(false);
+        alertRepository.save(alert);
+        messagingTemplate.convertAndSend("/topic/alerts/" + patientId, alert);
     }
 
     /**
