@@ -149,6 +149,27 @@ public class AlertService {
     }
 
     /**
+     * Create alert for abnormal behavior detected by ML
+     */
+    public Alert createBehavioralAlert(String patientId, String details) {
+        Alert alert = new Alert();
+        alert.setPatientId(patientId);
+        alert.setType(Alert.AlertType.BEHAVIORAL_ANOMALY);
+        alert.setMessage("BEHAVIORAL ANOMALY: " + details);
+        alert.setTriggeredAt(LocalDateTime.now());
+        alert.setAcknowledged(false);
+
+        Alert savedAlert = alertRepository.save(alert);
+        messagingTemplate.convertAndSend("/topic/alerts/" + patientId, savedAlert);
+
+        // Generate formal report
+        reportService.generateReport(patientId, Report.ReportType.BEHAVIORAL,
+                "ML Behavioral Analysis: " + details);
+
+        return savedAlert;
+    }
+
+    /**
      * Create medication due alert
      */
     public Alert createMedicationAlert(String patientId, String medicationName, String scheduledTime) {

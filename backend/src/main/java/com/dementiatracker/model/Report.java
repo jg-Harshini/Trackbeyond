@@ -23,6 +23,7 @@ public class Report {
 
     public enum ReportType {
         FALL,
-        FOG
+        FOG,
+        BEHAVIORAL
     }
 }

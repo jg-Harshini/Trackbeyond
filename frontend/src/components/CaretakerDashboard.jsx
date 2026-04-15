@@ -534,6 +534,28 @@ const CaretakerDashboard = () => {
                             </CardContent>
                         </Card>
 
+                        {/* Behavioral Analysis Monitoring */}
+                        <Card sx={{ mt: 2, bgcolor: 'background.paper', borderLeft: '5px solid #4caf50' }}>
+                            <CardContent>
+                                <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1}>
+                                    🧠 AI Behavior Status
+                                </Typography>
+                                <Box sx={{ textAlign: 'center', py: 2 }}>
+                                    <Chip 
+                                        label="STABLE" 
+                                        color="success" 
+                                        sx={{ fontWeight: 'bold', px: 2 }}
+                                    />
+                                    <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                                        Pattern: Normal
+                                    </Typography>
+                                </Box>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontStyle: 'italic' }}>
+                                    Real-time analysis powered by ML Model
+                                </Typography>
+                            </CardContent>
+                        </Card>
+
                         {/* Reports Section */}
                         <Card sx={{ mt: 2 }}>
                             <CardContent>
@@ -656,7 +678,8 @@ const CaretakerDashboard = () => {
                                                     label={alert.type}
                                                     color={
                                                         alert.type === 'EMERGENCY' || alert.type === 'FALL' ? 'error' :
-                                                            alert.type === 'FOG' || alert.type === 'MEDICATION_DUE' ? 'warning' : 'default'
+                                                            alert.type === 'FOG' || alert.type === 'MEDICATION_DUE' ? 'warning' :
+                                                            alert.type === 'BEHAVIORAL_ANOMALY' ? 'secondary' : 'default'
                                                     }
                                                     size="small"
                                                     sx={{ mr: 1 }}

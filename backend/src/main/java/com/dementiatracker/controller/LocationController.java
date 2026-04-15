@@ -19,6 +19,12 @@ public class LocationController {
     @Autowired
     private LocationService locationService;
 
+    @Autowired
+    private com.dementiatracker.service.MlAnalysisService mlAnalysisService;
+
+    @Autowired
+    private com.dementiatracker.service.AlertService alertService;
+
     @PostMapping
     @PreAuthorize("hasAnyRole('PATIENT', 'CARETAKER')")
     public ResponseEntity<?> updateLocation(@RequestBody LocationUpdateRequest request) {
@@ -28,6 +34,21 @@ public class LocationController {
                     request.getLatitude(),
                     request.getLongitude(),
                     "MANUAL");
+
+            // Perform Behavioral Analysis via ML Service
+            // Note: In a real system, we'd include accelerometer/sensor data here.
+            // For now, we use a sample feature set of 10 values based on current state.
+            java.util.List<Double> features = java.util.Arrays.asList(
+                    request.getLatitude(), request.getLongitude(), 
+                    (double) LocalDateTime.now().getHour(), (double) LocalDateTime.now().getMinute(),
+                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0 // Placeholders for other 6 features
+            );
+
+            if (mlAnalysisService.isBehaviorAbnormal(features)) {
+                alertService.createBehavioralAlert(request.getPatientId(), 
+                    "Abnormal movement pattern detected by ML model.");
+            }
+
             return ResponseEntity.ok(location);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

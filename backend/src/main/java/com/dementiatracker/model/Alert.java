@@ -42,6 +42,7 @@ public class Alert {
         EMERGENCY, // Patient triggered emergency alert
         FALL, // Fall detected via accelerometer
         FOG, // Freezing of Gait detected via accelerometer
-        MEDICATION_DUE // Medication not taken on schedule
+        MEDICATION_DUE, // Medication not taken on schedule
+        BEHAVIORAL_ANOMALY // Abnormal behavior detected via ML model
     }
 }
