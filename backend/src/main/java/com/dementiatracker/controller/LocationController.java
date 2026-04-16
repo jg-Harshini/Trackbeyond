@@ -38,10 +38,11 @@ public class LocationController {
             // Perform Behavioral Analysis via ML Service
             // Note: In a real system, we'd include accelerometer/sensor data here.
             // For now, we use a sample feature set of 10 values based on current state.
+            // Note: Model means are centered around 50.0.
             java.util.List<Double> features = java.util.Arrays.asList(
                     request.getLatitude(), request.getLongitude(), 
                     (double) LocalDateTime.now().getHour(), (double) LocalDateTime.now().getMinute(),
-                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0 // Placeholders for other 6 features
+                    50.0, 50.0, 50.0, 50.0, 50.0, 50.0 // Placeholders for other 6 features
             );
 
             if (mlAnalysisService.isBehaviorAbnormal(features)) {

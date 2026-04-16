@@ -8,15 +8,21 @@ import os
 
 app = FastAPI(title="Dementia Behavioral Analysis Service")
 
-# Path to models
-MODEL_PATH = os.path.join("models", "Behavioural_analysis.pkl")
-SCALER_PATH = os.path.join("models", "Behavioural_analysis_scaler.pkl")
+# Path to models relative to this script
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "models", "Behavioural_analysis.pkl")
+SCALER_PATH = os.path.join(BASE_DIR, "models", "Behavioural_analysis_scaler.pkl")
 
 # Load models
 try:
-    model = joblib.load(MODEL_PATH)
-    scaler = joblib.load(SCALER_PATH)
-    print("Models loaded successfully")
+    if os.path.exists(MODEL_PATH) and os.path.exists(SCALER_PATH):
+        model = joblib.load(MODEL_PATH)
+        scaler = joblib.load(SCALER_PATH)
+        print(f"Models loaded successfully from {MODEL_PATH}")
+    else:
+        print(f"Model files not found at {MODEL_PATH}")
+        model = None
+        scaler = None
 except Exception as e:
     print(f"Error loading models: {e}")
     model = None

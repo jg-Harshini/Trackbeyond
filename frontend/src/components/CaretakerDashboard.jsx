@@ -76,6 +76,9 @@ const CaretakerDashboard = () => {
     const [openMedDialog, setOpenMedDialog] = useState(false);
     const [newMed, setNewMed] = useState({ medicationName: '', dosage: '', scheduleTimes: [''], notes: '' });
 
+    // Behavioral AI state
+    const [behavioralStatus, setBehavioralStatus] = useState('STABLE');
+
     useEffect(() => {
         loadUserData();
 
@@ -144,6 +147,11 @@ const CaretakerDashboard = () => {
                         if (prev.some(a => a.id === alert.id)) return prev;
                         return [alert, ...prev];
                     });
+
+                    // Update real-time behavioral status if alert is from ML
+                    if (alert.type === 'BEHAVIORAL_ANOMALY' && patient.id === selectedPatient) {
+                        setBehavioralStatus('ABNORMAL');
+                    }
                 });
             });
 
@@ -542,12 +550,12 @@ const CaretakerDashboard = () => {
                                 </Typography>
                                 <Box sx={{ textAlign: 'center', py: 2 }}>
                                     <Chip 
-                                        label="STABLE" 
-                                        color="success" 
+                                        label={behavioralStatus} 
+                                        color={behavioralStatus === 'STABLE' ? 'success' : 'error'} 
                                         sx={{ fontWeight: 'bold', px: 2 }}
                                     />
                                     <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
-                                        Pattern: Normal
+                                        Pattern: {behavioralStatus === 'STABLE' ? 'Normal' : 'Abnormal Activity'}
                                     </Typography>
                                 </Box>
                                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontStyle: 'italic' }}>

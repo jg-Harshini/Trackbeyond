@@ -43,8 +43,8 @@ public class MlAnalysisService {
             MlRequest request = new MlRequest(features);
             MlResponse response = restTemplate.postForObject(url, request, MlResponse.class);
             
-            // Assume 1 means abnormal/alert behavior
-            return response != null && response.getPrediction() == 1;
+            // IsolationForest returns -1 for anomalies (outliers) and 1 for normal (inliers)
+            return response != null && response.getPrediction() == -1;
         } catch (Exception e) {
             System.err.println("Error calling ML service: " + e.getMessage());
             return false; // Fail safe
