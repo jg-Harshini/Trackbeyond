@@ -78,6 +78,7 @@ const PatientDashboard = () => {
     const lastFallAlertRef = useRef(0);
     const lastFogAlertRef = useRef(0);
     const lastLocationRef = useRef(null);
+    const latestMagnitudeRef = useRef(9.8);
 
     // ── Init ────────────────────────────────────────────────────────────────
     useEffect(() => {
@@ -124,7 +125,32 @@ const PatientDashboard = () => {
 
     const updateLocation = async (latitude, longitude) => {
         try {
-            const saved = await locationService.updateLocation(user.patientId, latitude, longitude);
+            let speed = 0;
+            const now = Date.now();
+            
+            if (lastLocationRef.current && lastLocationRef.current.timestamp) {
+                const dist = calcDistance(
+                    lastLocationRef.current.latitude,
+                    lastLocationRef.current.longitude,
+                    latitude,
+                    longitude
+                );
+                const timeDiff = (now - lastLocationRef.current.timestamp) / 1000; // seconds
+                if (timeDiff > 0) {
+                    speed = dist / timeDiff;
+                }
+            }
+            
+            // Mark the timestamp for speed calculation next time
+            lastLocationRef.current = { ...lastLocationRef.current, latitude, longitude, timestamp: now };
+
+            const saved = await locationService.updateLocation(
+                user.patientId, 
+                latitude, 
+                longitude, 
+                speed, 
+                latestMagnitudeRef.current
+            );
             setCurrentLocation(saved);
             setMapCenter({ lat: latitude, lng: longitude });
         } catch (error) {
@@ -190,7 +216,6 @@ const PatientDashboard = () => {
                         if (dist < 5) return;
                     }
 
-                    lastLocationRef.current = { latitude, longitude };
                     updateLocation(latitude, longitude);
                 },
                 (err) => setGeoError(err.message),
@@ -215,6 +240,7 @@ const PatientDashboard = () => {
         }
 
         // Update live display (throttled to ~10fps to avoid UI lag)
+        latestMagnitudeRef.current = magnitude;
         if (!window._lastSensorUIUpdate || now - window._lastSensorUIUpdate > 100) {
             setLiveMagnitude(magnitude);
             window._lastSensorUIUpdate = now;

@@ -27,6 +27,10 @@ public class Location {
     private LocalDateTime timestamp;
 
     private String source; // e.g. "GPS" or "MANUAL"
+    
+    private double speed;
+    
+    private double acceleration;
 
     private String deviceId; // Optional: device identifier
 }

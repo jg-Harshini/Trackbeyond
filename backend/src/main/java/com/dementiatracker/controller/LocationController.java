@@ -33,21 +33,30 @@ public class LocationController {
                     request.getPatientId(),
                     request.getLatitude(),
                     request.getLongitude(),
+                    request.getSpeed(),
+                    request.getAcceleration(),
                     "MANUAL");
 
-            // Perform Behavioral Analysis via ML Service
-            // Note: In a real system, we'd include accelerometer/sensor data here.
-            // For now, we use a sample feature set of 10 values based on current state.
-            // Note: Model means are centered around 50.0.
-            java.util.List<Double> features = java.util.Arrays.asList(
-                    request.getLatitude(), request.getLongitude(), 
-                    (double) LocalDateTime.now().getHour(), (double) LocalDateTime.now().getMinute(),
-                    50.0, 50.0, 50.0, 50.0, 50.0, 50.0 // Placeholders for other 6 features
-            );
-
-            if (mlAnalysisService.isBehaviorAbnormal(features)) {
+            // --- Rule-Based Bypass for Behavioral Analysis ---
+            // If speed (> 3m/s) or acceleration (> 15m/s²) is high, trigger alert immediately.
+            boolean isAbnormalByMotion = request.getSpeed() > 3.0 || request.getAcceleration() > 15.0;
+            
+            if (isAbnormalByMotion) {
+                String reason = request.getSpeed() > 3.0 ? "high travel speed" : "intense physical movement";
                 alertService.createBehavioralAlert(request.getPatientId(), 
-                    "Abnormal movement pattern detected by ML model.");
+                    "Abnormal behavior detected: " + reason);
+            } else {
+                // Perform Behavioral Analysis via ML Service if not bypassed
+                java.util.List<Double> features = java.util.Arrays.asList(
+                        request.getLatitude(), request.getLongitude(), 
+                        (double) LocalDateTime.now().getHour(), (double) LocalDateTime.now().getMinute(),
+                        50.0, 50.0, 50.0, 50.0, 50.0, 50.0 // Placeholders
+                );
+
+                if (mlAnalysisService.isBehaviorAbnormal(features)) {
+                    alertService.createBehavioralAlert(request.getPatientId(), 
+                        "Abnormal movement pattern detected by ML model.");
+                }
             }
 
             return ResponseEntity.ok(location);

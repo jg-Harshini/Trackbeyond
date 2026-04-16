@@ -11,4 +11,6 @@ public class LocationUpdateRequest {
     private String patientId;
     private double latitude;
     private double longitude;
+    private double speed;
+    private double acceleration;
 }

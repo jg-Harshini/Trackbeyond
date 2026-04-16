@@ -32,13 +32,16 @@ public class LocationService {
     /**
      * Update patient location and check geofencing
      */
-    public Location updateLocation(String patientId, double latitude, double longitude, String source) {
-        log.info("Updating location for patient {}: ({}, {}) from {}", patientId, latitude, longitude, source);
+    public Location updateLocation(String patientId, double latitude, double longitude, double speed, double acceleration, String source) {
+        log.info("Updating location for patient {}: ({}, {}) Speed: {}, Accel: {} from {}", 
+            patientId, latitude, longitude, speed, acceleration, source);
         // Save new location
         Location location = new Location();
         location.setPatientId(patientId);
         location.setLatitude(latitude);
         location.setLongitude(longitude);
+        location.setSpeed(speed);
+        location.setAcceleration(acceleration);
         location.setTimestamp(LocalDateTime.now());
         location.setSource(source);
 
