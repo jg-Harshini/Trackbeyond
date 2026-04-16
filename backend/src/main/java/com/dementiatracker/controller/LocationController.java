@@ -38,11 +38,11 @@ public class LocationController {
                     "MANUAL");
 
             // --- Rule-Based Bypass for Behavioral Analysis ---
-            // If speed (> 3m/s) or acceleration (> 15m/s²) is high, trigger alert immediately.
-            boolean isAbnormalByMotion = request.getSpeed() > 3.0 || request.getAcceleration() > 15.0;
+            // Increased sensitivity: Speed (> 1.5m/s) or acceleration (> 13.0m/s²)
+            boolean isAbnormalByMotion = request.getSpeed() > 1.5 || request.getAcceleration() > 13.0;
             
             if (isAbnormalByMotion) {
-                String reason = request.getSpeed() > 3.0 ? "high travel speed" : "intense physical movement";
+                String reason = request.getSpeed() > 1.5 ? "brisk walking/high speed" : "moderate physical agitation";
                 alertService.createBehavioralAlert(request.getPatientId(), 
                     "Abnormal behavior detected: " + reason);
             } else {
