@@ -594,6 +594,30 @@ const PatientDashboard = () => {
                                                         {peakMagnitude.toFixed(2)} m/s²
                                                     </Typography>
                                                 </Grid>
+                                                <Grid item xs={4}>
+                                                    <Typography variant="caption" display="block">Acc X:</Typography>
+                                                    <Typography variant="body2">{sensorDataRef.current.accX?.toFixed(2)}</Typography>
+                                                </Grid>
+                                                <Grid item xs={4}>
+                                                    <Typography variant="caption" display="block">Acc Y:</Typography>
+                                                    <Typography variant="body2">{sensorDataRef.current.accY?.toFixed(2)}</Typography>
+                                                </Grid>
+                                                <Grid item xs={4}>
+                                                    <Typography variant="caption" display="block">Acc Z:</Typography>
+                                                    <Typography variant="body2">{sensorDataRef.current.accZ?.toFixed(2)}</Typography>
+                                                </Grid>
+                                                <Grid item xs={4}>
+                                                    <Typography variant="caption" display="block">Gyro α:</Typography>
+                                                    <Typography variant="body2">{sensorDataRef.current.gyroAlpha?.toFixed(2)}</Typography>
+                                                </Grid>
+                                                <Grid item xs={4}>
+                                                    <Typography variant="caption" display="block">Gyro β:</Typography>
+                                                    <Typography variant="body2">{sensorDataRef.current.gyroBeta?.toFixed(2)}</Typography>
+                                                </Grid>
+                                                <Grid item xs={4}>
+                                                    <Typography variant="caption" display="block">Gyro γ:</Typography>
+                                                    <Typography variant="body2">{sensorDataRef.current.gyroGamma?.toFixed(2)}</Typography>
+                                                </Grid>
                                                 <Grid item xs={12}>
                                                     <Typography variant="caption" display="block">Status:</Typography>
                                                     <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
