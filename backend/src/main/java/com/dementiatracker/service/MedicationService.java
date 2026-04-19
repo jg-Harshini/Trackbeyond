@@ -29,6 +29,10 @@ public class MedicationService {
         return medicationRepository.findByPatientId(patientId);
     }
 
+    public java.util.Optional<Medication> getMedicationById(String id) {
+        return medicationRepository.findById(id);
+    }
+
     public Medication updateMedication(String id, Medication updated) {
         Medication existing = medicationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Medication not found"));
@@ -41,10 +45,6 @@ public class MedicationService {
     }
 
     public void deleteMedication(String id) {
-        Medication medication = medicationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Medication not found"));
-        medication.setActive(false);
-        medication.setUpdatedAt(LocalDateTime.now());
-        medicationRepository.save(medication);
+        medicationRepository.deleteById(id);
     }
 }

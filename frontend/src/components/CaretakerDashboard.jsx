@@ -375,6 +375,16 @@ const CaretakerDashboard = () => {
         }
     };
 
+    const handleAcknowledgeAll = async () => {
+        if (!selectedPatient) return;
+        try {
+            await alertService.acknowledgeAllAlerts(selectedPatient, user.userId);
+            setAlerts([]);
+        } catch (error) {
+            console.error('Error acknowledging all alerts:', error);
+        }
+    };
+
     // Helper: get patient display name from patientId
     const getPatientDisplayName = (patientId) => {
         const p = patients.find(p => p.id === patientId);
@@ -686,7 +696,19 @@ const CaretakerDashboard = () => {
 
             {/* Alerts Dialog */}
             <Dialog open={openAlertsDialog} onClose={() => setOpenAlertsDialog(false)} maxWidth="md" fullWidth>
-                <DialogTitle>Active Alerts</DialogTitle>
+                <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="h6">Active Alerts</Typography>
+                    {alerts.length > 0 && (
+                        <Button 
+                            size="small" 
+                            variant="contained" 
+                            color="primary" 
+                            onClick={handleAcknowledgeAll}
+                        >
+                            Acknowledge All
+                        </Button>
+                    )}
+                </DialogTitle>
                 <DialogContent>
                     {alerts.length > 0 ? (
                         <List>

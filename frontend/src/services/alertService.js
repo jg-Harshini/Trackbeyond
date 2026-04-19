@@ -18,6 +18,13 @@ export const alertService = {
         return response.data;
     },
 
+    async acknowledgeAllAlerts(patientId, caretakerId) {
+        const response = await api.put(`/alerts/patient/${patientId}/acknowledge-all`, null, {
+            params: { caretakerId }
+        });
+        return response.data;
+    },
+
     async triggerEmergencyAlert(patientId) {
         const response = await api.post(`/alerts/emergency/${patientId}`);
         return response.data;

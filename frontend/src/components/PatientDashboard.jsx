@@ -103,6 +103,11 @@ const PatientDashboard = () => {
                     setActiveAlerts(prev => [alert, ...prev].slice(0, 5));
                 }
             });
+
+            websocketService.subscribeToMedications(user.patientId, () => {
+                console.log('Medication update received via WebSocket');
+                loadMedications();
+            });
         });
 
         // 5-second heartbeat for behavioral analysis

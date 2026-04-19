@@ -101,8 +101,8 @@ public class AlertService {
         reportService.generateReport(patientId, Report.ReportType.FALL,
                 "Automated report: A fall was detected by the patient's device sensors.");
 
-        // Check for frequent incidents (5+) in the last 24h
-        if (reportService.countTotalIncidents(patientId) > 5) {
+        // Check for frequent incidents (5+) in the last week (7 days)
+        if (reportService.countRecentIncidents(patientId, 7) > 5) {
             triggerHospitalAlert(patientId);
         }
 
@@ -128,8 +128,8 @@ public class AlertService {
         reportService.generateReport(patientId, Report.ReportType.FOG,
                 "Automated report: Freezing of Gait (FOG) symptoms were detected by the patient's device sensors.");
 
-        // Check for frequent incidents (5+) in the last 24h
-        if (reportService.countTotalIncidents(patientId) > 5) {
+        // Check for frequent incidents (5+) in the last week (7 days)
+        if (reportService.countRecentIncidents(patientId, 7) > 5) {
             triggerHospitalAlert(patientId);
         }
 
@@ -198,6 +198,24 @@ public class AlertService {
      */
     public List<Alert> getUnacknowledgedAlerts(String patientId) {
         return alertRepository.findByPatientIdAndAcknowledgedFalseOrderByTriggeredAtDesc(patientId);
+    }
+
+    /**
+     * Acknowledge all alerts for a patient
+     */
+    public void acknowledgeAllAlerts(String patientId, String caretakerId) {
+        List<Alert> unacknowledged = alertRepository.findByPatientIdAndAcknowledgedFalseOrderByTriggeredAtDesc(patientId);
+        LocalDateTime now = LocalDateTime.now();
+        
+        for (Alert alert : unacknowledged) {
+            alert.setAcknowledged(true);
+            alert.setAcknowledgedAt(now);
+            alert.setAcknowledgedByCaretakerId(caretakerId);
+        }
+        
+        if (!unacknowledged.isEmpty()) {
+            alertRepository.saveAll(unacknowledged);
+        }
     }
 
     /**

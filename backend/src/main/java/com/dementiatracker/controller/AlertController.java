@@ -41,6 +41,17 @@ public class AlertController {
         }
     }
 
+    @PutMapping("/patient/{patientId}/acknowledge-all")
+    @PreAuthorize("hasRole('CARETAKER')")
+    public ResponseEntity<?> acknowledgeAllAlerts(@PathVariable String patientId, @RequestParam String caretakerId) {
+        try {
+            alertService.acknowledgeAllAlerts(patientId, caretakerId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PostMapping("/emergency/{patientId}")
     @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<?> triggerEmergencyAlert(@PathVariable String patientId) {

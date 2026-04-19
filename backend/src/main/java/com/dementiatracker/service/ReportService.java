@@ -28,7 +28,8 @@ public class ReportService {
         return reportRepository.findByPatientIdOrderByGeneratedAtDesc(patientId);
     }
 
-    public long countTotalIncidents(String patientId) {
-        return reportRepository.countByPatientId(patientId);
+    public long countRecentIncidents(String patientId, int days) {
+        LocalDateTime since = LocalDateTime.now().minusDays(days);
+        return reportRepository.countByPatientIdAndGeneratedAtAfter(patientId, since);
     }
 }

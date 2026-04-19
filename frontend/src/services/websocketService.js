@@ -99,6 +99,10 @@ class WebSocketService {
     subscribeToAlerts(patientId, callback) {
         return this._subscribe(`/topic/alerts/${patientId}`, callback);
     }
+
+    subscribeToMedications(patientId, callback) {
+        return this._subscribe(`/topic/medications/${patientId}`, callback);
+    }
 }
 
 export default new WebSocketService();
