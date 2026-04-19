@@ -68,6 +68,7 @@ def predict(data: SensorData):
     p_model, p_scaler = get_patient_model(data.patient_id)
     
     if not p_model or not p_scaler:
+        print(f"Prediction failed: No model found for patient {data.patient_id}")
         raise HTTPException(status_code=500, detail="No model available for prediction")
     
     if len(data.features) != 10:
@@ -79,18 +80,25 @@ def predict(data: SensorData):
         scaled_features = p_scaler.transform(features_array)
         
         # Predict: IsolationForest returns -1 for outliers, 1 for inliers
-        prediction = p_model.predict(scaled_features)
+        prediction = p_model.predict(scaled_features)[0]
         
         # Calculate decision score (lower score = more anomalous)
         score = p_model.decision_function(scaled_features)[0]
         
+        print(f"--- ML PREDICTION ---")
+        print(f"Patient ID: {data.patient_id}")
+        print(f"Features: {data.features}")
+        print(f"Score: {score:.4f} | Prediction: {'NORMAL' if prediction == 1 else 'ANOMALY'}")
+        print(f"---------------------")
+        
         return {
-            "prediction": int(prediction[0]),
+            "prediction": int(prediction),
             "score": float(score),
             "status": "success",
             "model_type": "patient_specific" if data.patient_id in patient_models else "global"
         }
     except Exception as e:
+        print(f"Predict error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/train/{patient_id}")
