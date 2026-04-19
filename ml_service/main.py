@@ -2,7 +2,7 @@ import joblib
 import pandas as pd
 import numpy as np
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
@@ -39,8 +39,13 @@ patient_models = {}
 patient_scalers = {}
 
 class SensorData(BaseModel):
-    patient_id: str
+    patient_id: str = Field(alias="patientId")
     features: List[float]
+
+    # Handle both Pydantic v1 and v2 naming for field aliases
+    class Config:
+        allow_population_by_field_name = True # v1
+        populate_by_name = True # v2
 
 def get_patient_model(patient_id: str):
     """Load patient-specific model and scaler if they exist"""
@@ -99,7 +104,7 @@ def predict(data: SensorData):
             "prediction": int(prediction),
             "score": float(score),
             "status": "success",
-            "model_type": "patient_specific" if data.patient_id in patient_models else "global"
+            "modelType": "patient_specific" if data.patient_id in patient_models else "global"
         }
     except Exception as e:
         print(f"Predict error: {e}")
