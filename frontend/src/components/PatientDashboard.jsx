@@ -105,8 +105,20 @@ const PatientDashboard = () => {
             });
         });
 
-        return () => websocketService.disconnect();
-    }, [user.patientId]);
+        // 5-second heartbeat for behavioral analysis
+        // Ensures AI gets data even if GPS is stationary (e.g. shaking phone at desk)
+        const heartbeatInterval = setInterval(() => {
+            // We use the latest known location but fresh sensor data
+            if (lastLocationRef.current && sensorEnabled) {
+                updateLocation(lastLocationRef.current.latitude, lastLocationRef.current.longitude);
+            }
+        }, 5000);
+
+        return () => {
+            websocketService.disconnect();
+            clearInterval(heartbeatInterval);
+        };
+    }, [user.patientId, sensorEnabled]);
 
     // ── Medication reminder polling ──────────────────────────────────────────
     useEffect(() => {

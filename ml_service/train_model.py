@@ -31,11 +31,11 @@ def train_patient_model(patient_id):
         
         print(f"Training ML Model (Algorithm: Isolation Forest) for {patient_id}...")
         # We use Isolation Forest for anomaly detection.
-        # contamination=0.1 means we expect roughly 10% of the training data might be 'noisy'
-        # Higher contamination makes the model more sensitive to anomalies.
+        # contamination=0.2 means we expect roughly 20% of the training data might be 'noisy'
+        # Higher contamination makes the model extremely sensitive to anomalies for demos.
         model = IsolationForest(
             n_estimators=100, 
-            contamination=0.1, 
+            contamination=0.2, 
             random_state=42
         )
         model.fit(X_scaled)
