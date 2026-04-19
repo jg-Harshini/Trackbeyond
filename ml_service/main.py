@@ -15,6 +15,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "models", "model_patient_sample_001.pkl")
 SCALER_PATH = os.path.join(BASE_DIR, "models", "scaler_patient_sample_001.pkl")
 
+# 8 features: lat, lon, accX, accY, accZ, gyroAlpha, gyroBeta, gyroGamma
+# (hour and minute are excluded — they are metadata, not predictive features)
+FEATURE_COUNT = 8
+
 # Load global models
 try:
     if os.path.exists(MODEL_PATH) and os.path.exists(SCALER_PATH):
@@ -71,8 +75,8 @@ def predict(data: SensorData):
         print(f"Prediction failed: No model found for patient {data.patient_id}")
         raise HTTPException(status_code=500, detail="No model available for prediction")
     
-    if len(data.features) != 10:
-        raise HTTPException(status_code=400, detail=f"Expected 10 features, got {len(data.features)}")
+    if len(data.features) != FEATURE_COUNT:
+        raise HTTPException(status_code=400, detail=f"Expected {FEATURE_COUNT} features, got {len(data.features)}")
     
     try:
         # Reshape and scale
@@ -110,8 +114,10 @@ def train(patient_id: str):
     try:
         # Load data
         df = pd.read_csv(csv_path)
-        # Drop timestamp
-        X = df.drop(columns=['timestamp'])
+        
+        # Drop timestamp, hour, and minute — keep only sensor + GPS features
+        drop_cols = [c for c in ['timestamp', 'hour', 'minute'] if c in df.columns]
+        X = df.drop(columns=drop_cols)
         
         # Feature scaling
         p_scaler = StandardScaler()
@@ -130,7 +136,7 @@ def train(patient_id: str):
         patient_models[patient_id] = p_model
         patient_scalers[patient_id] = p_scaler
         
-        return {"status": "success", "message": f"Model trained and saved for patient {patient_id}"}
+        return {"status": "success", "message": f"Model trained and saved for patient {patient_id}", "features_used": list(X.columns)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

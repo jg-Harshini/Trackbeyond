@@ -46,6 +46,7 @@ public class MlAnalysisService {
             MlResponse response = restTemplate.postForObject(url, request, MlResponse.class);
             
             // IsolationForest returns -1 for anomalies (outliers) and 1 for normal (inliers)
+            // 8 features: lat, lon, accX, accY, accZ, gyroAlpha, gyroBeta, gyroGamma
             System.out.println("ML Service Response for " + patientId + ": " + response);
             return response != null && response.getPrediction() == -1;
         } catch (Exception e) {

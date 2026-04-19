@@ -76,7 +76,7 @@ const CaretakerDashboard = () => {
     const [openMedDialog, setOpenMedDialog] = useState(false);
     const [newMed, setNewMed] = useState({ medicationName: '', dosage: '', scheduleTimes: [''], notes: '' });
 
-    // Behavioral AI state
+    // Behavioral ML state
     const [behavioralStatus, setBehavioralStatus] = useState('STABLE');
 
     useEffect(() => {
@@ -413,10 +413,11 @@ const CaretakerDashboard = () => {
             </AppBar>
 
             <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+                {/* ── Row 1: Patient List + Map ──────────────────────────── */}
                 <Grid container spacing={3}>
                     <Grid item xs={12} md={3}>
                         {/* Patient List */}
-                        <Card>
+                        <Card sx={{ height: '100%' }}>
                             <CardContent>
                                 <Typography variant="h6" gutterBottom>
                                     Linked Patients
@@ -452,9 +453,48 @@ const CaretakerDashboard = () => {
                                 </List>
                             </CardContent>
                         </Card>
+                    </Grid>
 
-                        {/* Safe Zones with delete */}
-                        <Card sx={{ mt: 2 }}>
+                    <Grid item xs={12} md={9}>
+                        {/* Map */}
+                        <Card sx={{ height: '100%' }}>
+                            <CardContent>
+                                <Typography variant="h6" gutterBottom>
+                                    Patient Location Map
+                                </Typography>
+                                {selectedPatient && mapCenter ? (
+                                    <MapView
+                                        patients={patients.filter(p => p.id === selectedPatient)}
+                                        safeZones={safeZones}
+                                        center={mapCenter}
+                                        onMapClick={handleMapClick}
+                                    />
+                                ) : selectedPatient ? (
+                                    <Box height="500px" display="flex" alignItems="center" justifyContent="center">
+                                        <Typography color="text.secondary">
+                                            Loading patient location…
+                                        </Typography>
+                                    </Box>
+                                ) : (
+                                    <Box height="500px" display="flex" alignItems="center" justifyContent="center">
+                                        <Typography color="text.secondary">
+                                            Select a patient to view their location
+                                        </Typography>
+                                    </Box>
+                                )}
+                                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                                    Click on the map to create a new safe zone
+                                </Typography>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                </Grid>
+
+                {/* ── Row 2: Management Cards (full-width grid) ──────────── */}
+                <Grid container spacing={3} sx={{ mt: 1 }}>
+                    {/* Safe Zones */}
+                    <Grid item xs={12} md={4}>
+                        <Card sx={{ height: '100%' }}>
                             <CardContent>
                                 <Typography variant="h6" gutterBottom>
                                     Safe Zones
@@ -497,33 +537,11 @@ const CaretakerDashboard = () => {
                                 </Button>
                             </CardContent>
                         </Card>
+                    </Grid>
 
-                        {/* Location History */}
-                        <Card sx={{ mt: 2 }}>
-                            <CardContent>
-                                <Typography variant="h6" gutterBottom>
-                                    Location History
-                                </Typography>
-                                <List dense sx={{ maxHeight: '300px', overflow: 'auto' }}>
-                                    {locationHistory.map((loc) => (
-                                        <ListItem key={loc.id}>
-                                            <ListItemText
-                                                primary={new Date(loc.timestamp).toLocaleString()}
-                                                secondary={`Lat: ${loc.latitude.toFixed(6)}, Lng: ${loc.longitude.toFixed(6)}`}
-                                            />
-                                        </ListItem>
-                                    ))}
-                                    {locationHistory.length === 0 && (
-                                        <Typography variant="body2" color="text.secondary">
-                                            No history available
-                                        </Typography>
-                                    )}
-                                </List>
-                            </CardContent>
-                        </Card>
-
-                        {/* Medications Management */}
-                        <Card sx={{ mt: 2 }}>
+                    {/* Medications */}
+                    <Grid item xs={12} md={4}>
+                        <Card sx={{ height: '100%' }}>
                             <CardContent>
                                 <Typography variant="h6" gutterBottom>💊 Medications</Typography>
                                 <List dense>
@@ -554,14 +572,16 @@ const CaretakerDashboard = () => {
                                 </Button>
                             </CardContent>
                         </Card>
+                    </Grid>
 
-                        {/* Behavioral Analysis Monitoring */}
-                        <Card sx={{ mt: 2, bgcolor: 'background.paper', 
+                    {/* ML Behavior Status */}
+                    <Grid item xs={12} md={4}>
+                        <Card sx={{ height: '100%',
                             borderLeft: '5px solid',
                             borderColor: behavioralStatus === 'STABLE' ? '#4caf50' : '#f44336' }}>
                             <CardContent>
                                 <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1}>
-                                    🧠 AI Behavior Status
+                                    🧠 ML Behavior Status
                                 </Typography>
                                 <Box sx={{ textAlign: 'center', py: 2 }}>
                                     <Box display="flex" justifyContent="center" alignItems="center" gap={1} mb={1}>
@@ -586,9 +606,40 @@ const CaretakerDashboard = () => {
                                 </Typography>
                             </CardContent>
                         </Card>
+                    </Grid>
+                </Grid>
 
-                        {/* Reports Section */}
-                        <Card sx={{ mt: 2 }}>
+                {/* ── Row 3: Location History + Reports ──────────────────── */}
+                <Grid container spacing={3} sx={{ mt: 1 }}>
+                    {/* Location History */}
+                    <Grid item xs={12} md={8}>
+                        <Card>
+                            <CardContent>
+                                <Typography variant="h6" gutterBottom>
+                                    Location History
+                                </Typography>
+                                <List dense sx={{ maxHeight: '250px', overflow: 'auto' }}>
+                                    {locationHistory.map((loc) => (
+                                        <ListItem key={loc.id}>
+                                            <ListItemText
+                                                primary={new Date(loc.timestamp).toLocaleString()}
+                                                secondary={`Lat: ${loc.latitude.toFixed(6)}, Lng: ${loc.longitude.toFixed(6)}`}
+                                            />
+                                        </ListItem>
+                                    ))}
+                                    {locationHistory.length === 0 && (
+                                        <Typography variant="body2" color="text.secondary">
+                                            No history available
+                                        </Typography>
+                                    )}
+                                </List>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+
+                    {/* Reports */}
+                    <Grid item xs={12} md={4}>
+                        <Card sx={{ height: '100%' }}>
                             <CardContent>
                                 <Typography variant="h6" gutterBottom>📋 Reports</Typography>
                                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -604,40 +655,6 @@ const CaretakerDashboard = () => {
                                 >
                                     View Reports
                                 </Button>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-
-                    {/* Map */}
-                    <Grid item xs={12} md={9}>
-                        <Card>
-                            <CardContent>
-                                <Typography variant="h6" gutterBottom>
-                                    Patient Location Map
-                                </Typography>
-                                {selectedPatient && mapCenter ? (
-                                    <MapView
-                                        patients={patients.filter(p => p.id === selectedPatient)}
-                                        safeZones={safeZones}
-                                        center={mapCenter}
-                                        onMapClick={handleMapClick}
-                                    />
-                                ) : selectedPatient ? (
-                                    <Box height="500px" display="flex" alignItems="center" justifyContent="center">
-                                        <Typography color="text.secondary">
-                                            Loading patient location…
-                                        </Typography>
-                                    </Box>
-                                ) : (
-                                    <Box height="500px" display="flex" alignItems="center" justifyContent="center">
-                                        <Typography color="text.secondary">
-                                            Select a patient to view their location
-                                        </Typography>
-                                    </Box>
-                                )}
-                                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                                    Click on the map to create a new safe zone
-                                </Typography>
                             </CardContent>
                         </Card>
                     </Grid>

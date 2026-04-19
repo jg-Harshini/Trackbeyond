@@ -43,28 +43,17 @@ public class LocationController {
                     request.getGyroGamma(),
                     "MANUAL");
 
-            // --- Rule-Based Bypass for Behavioral Analysis ---
-            // Increased sensitivity: Speed (> 1.5m/s) or acceleration (> 13.0m/s²)
-            boolean isAbnormalByMotion = request.getSpeed() > 1.5 || request.getAcceleration() > 13.0;
-            
-            if (isAbnormalByMotion) {
-                String reason = request.getSpeed() > 1.5 ? "brisk walking/high speed" : "moderate physical agitation";
-                alertService.createBehavioralAlert(request.getPatientId(), 
-                    "Abnormal behavior detected: " + reason);
-            } else {
-                // Perform Behavioral Analysis via ML Service if not bypassed
-                java.time.LocalDateTime now = java.time.LocalDateTime.now();
-                java.util.List<Double> features = java.util.Arrays.asList(
-                        request.getLatitude(), request.getLongitude(),
-                        request.getAccX(), request.getAccY(), request.getAccZ(),
-                        request.getGyroAlpha(), request.getGyroBeta(), request.getGyroGamma(),
-                        (double) now.getHour(), (double) now.getMinute()
-                );
+            // --- Behavioral Analysis via ML Service ---
+            // All sensor data goes through the ML model (8 features, no hour/minute)
+            java.util.List<Double> features = java.util.Arrays.asList(
+                    request.getLatitude(), request.getLongitude(),
+                    request.getAccX(), request.getAccY(), request.getAccZ(),
+                    request.getGyroAlpha(), request.getGyroBeta(), request.getGyroGamma()
+            );
 
-                if (mlAnalysisService.isBehaviorAbnormal(request.getPatientId(), features)) {
-                    alertService.createBehavioralAlert(request.getPatientId(), 
-                        "Abnormal movement pattern detected by ML model.");
-                }
+            if (mlAnalysisService.isBehaviorAbnormal(request.getPatientId(), features)) {
+                alertService.createBehavioralAlert(request.getPatientId(), 
+                    "Abnormal movement pattern detected by ML model.");
             }
 
             return ResponseEntity.ok(location);
