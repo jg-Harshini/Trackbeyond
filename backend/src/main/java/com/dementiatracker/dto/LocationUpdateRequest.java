@@ -13,4 +13,10 @@ public class LocationUpdateRequest {
     private double longitude;
     private double speed;
     private double acceleration;
+    private double accX;
+    private double accY;
+    private double accZ;
+    private double gyroAlpha;
+    private double gyroBeta;
+    private double gyroGamma;
 }

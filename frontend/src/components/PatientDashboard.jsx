@@ -79,6 +79,11 @@ const PatientDashboard = () => {
     const lastFogAlertRef = useRef(0);
     const lastLocationRef = useRef(null);
     const latestMagnitudeRef = useRef(9.8);
+    // Raw sensor data for ML baseline/analysis
+    const sensorDataRef = useRef({
+        accX: 0, accY: 0, accZ: 9.8,
+        gyroAlpha: 0, gyroBeta: 0, gyroGamma: 0
+    });
 
     // ── Init ────────────────────────────────────────────────────────────────
     useEffect(() => {
@@ -149,7 +154,13 @@ const PatientDashboard = () => {
                 latitude, 
                 longitude, 
                 speed, 
-                latestMagnitudeRef.current
+                latestMagnitudeRef.current,
+                sensorDataRef.current.accX,
+                sensorDataRef.current.accY,
+                sensorDataRef.current.accZ,
+                sensorDataRef.current.gyroAlpha,
+                sensorDataRef.current.gyroBeta,
+                sensorDataRef.current.gyroGamma
             );
             setCurrentLocation(saved);
             setMapCenter({ lat: latitude, lng: longitude });
@@ -238,6 +249,19 @@ const PatientDashboard = () => {
         if (magnitude > peakMagnitude) {
             setPeakMagnitude(magnitude);
         }
+
+        // Store raw data for ML updates
+        const { x: rx, y: ry, z: rz } = event.acceleration || {}; // without gravity if available
+        const { alpha, beta, gamma } = event.rotationRate || {};
+        
+        sensorDataRef.current = {
+            accX: x, // including gravity is better for baseline orientation
+            accY: y,
+            accZ: z,
+            gyroAlpha: alpha || 0,
+            gyroBeta: beta || 0,
+            gyroGamma: gamma || 0
+        };
 
         // Update live display (throttled to ~10fps to avoid UI lag)
         latestMagnitudeRef.current = magnitude;

@@ -22,6 +22,7 @@ public class MlAnalysisService {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class MlRequest {
+        private String patientId;
         private List<Double> features;
     }
 
@@ -30,17 +31,18 @@ public class MlAnalysisService {
     @NoArgsConstructor
     public static class MlResponse {
         private int prediction;
-        private List<Double> probability;
+        private double score;
         private String status;
+        private String modelType;
     }
 
     /**
      * Call the Python ML service to analyze patient behavior
      */
-    public boolean isBehaviorAbnormal(List<Double> features) {
+    public boolean isBehaviorAbnormal(String patientId, List<Double> features) {
         try {
             String url = mlServiceUrl + "/predict";
-            MlRequest request = new MlRequest(features);
+            MlRequest request = new MlRequest(patientId, features);
             MlResponse response = restTemplate.postForObject(url, request, MlResponse.class);
             
             // IsolationForest returns -1 for anomalies (outliers) and 1 for normal (inliers)

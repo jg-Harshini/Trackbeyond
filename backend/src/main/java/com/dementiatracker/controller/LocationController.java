@@ -35,6 +35,12 @@ public class LocationController {
                     request.getLongitude(),
                     request.getSpeed(),
                     request.getAcceleration(),
+                    request.getAccX(),
+                    request.getAccY(),
+                    request.getAccZ(),
+                    request.getGyroAlpha(),
+                    request.getGyroBeta(),
+                    request.getGyroGamma(),
                     "MANUAL");
 
             // --- Rule-Based Bypass for Behavioral Analysis ---
@@ -47,13 +53,15 @@ public class LocationController {
                     "Abnormal behavior detected: " + reason);
             } else {
                 // Perform Behavioral Analysis via ML Service if not bypassed
+                java.time.LocalDateTime now = java.time.LocalDateTime.now();
                 java.util.List<Double> features = java.util.Arrays.asList(
-                        request.getLatitude(), request.getLongitude(), 
-                        (double) LocalDateTime.now().getHour(), (double) LocalDateTime.now().getMinute(),
-                        50.0, 50.0, 50.0, 50.0, 50.0, 50.0 // Placeholders
+                        request.getLatitude(), request.getLongitude(),
+                        request.getAccX(), request.getAccY(), request.getAccZ(),
+                        request.getGyroAlpha(), request.getGyroBeta(), request.getGyroGamma(),
+                        (double) now.getHour(), (double) now.getMinute()
                 );
 
-                if (mlAnalysisService.isBehaviorAbnormal(features)) {
+                if (mlAnalysisService.isBehaviorAbnormal(request.getPatientId(), features)) {
                     alertService.createBehavioralAlert(request.getPatientId(), 
                         "Abnormal movement pattern detected by ML model.");
                 }

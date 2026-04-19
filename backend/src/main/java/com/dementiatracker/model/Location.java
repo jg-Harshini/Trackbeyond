@@ -32,5 +32,13 @@ public class Location {
     
     private double acceleration;
 
+    // Behavioral sensor data
+    private double accX;
+    private double accY;
+    private double accZ;
+    private double gyroAlpha;
+    private double gyroBeta;
+    private double gyroGamma;
+
     private String deviceId; // Optional: device identifier
 }

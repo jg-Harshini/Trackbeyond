@@ -32,9 +32,13 @@ public class LocationService {
     /**
      * Update patient location and check geofencing
      */
-    public Location updateLocation(String patientId, double latitude, double longitude, double speed, double acceleration, String source) {
+    public Location updateLocation(String patientId, double latitude, double longitude, double speed, double acceleration, 
+                                 double accX, double accY, double accZ, 
+                                 double gyroAlpha, double gyroBeta, double gyroGamma, 
+                                 String source) {
         log.info("Updating location for patient {}: ({}, {}) Speed: {}, Accel: {} from {}", 
             patientId, latitude, longitude, speed, acceleration, source);
+        
         // Save new location
         Location location = new Location();
         location.setPatientId(patientId);
@@ -42,10 +46,19 @@ public class LocationService {
         location.setLongitude(longitude);
         location.setSpeed(speed);
         location.setAcceleration(acceleration);
+        location.setAccX(accX);
+        location.setAccY(accY);
+        location.setAccZ(accZ);
+        location.setGyroAlpha(gyroAlpha);
+        location.setGyroBeta(gyroBeta);
+        location.setGyroGamma(gyroGamma);
         location.setTimestamp(LocalDateTime.now());
         location.setSource(source);
 
         Location savedLocation = locationRepository.save(location);
+
+        // Append to baseline CSV for model training if not already trained
+        appendLocationToBaseline(savedLocation);
 
         // Send real-time location update via WebSocket
         messagingTemplate.convertAndSend("/topic/location/" + patientId, savedLocation);
@@ -54,6 +67,55 @@ public class LocationService {
         checkGeofencing(patientId, savedLocation);
 
         return savedLocation;
+    }
+
+    private void appendLocationToBaseline(Location loc) {
+        String patientId = loc.getPatientId();
+        // Construct the expected file path (sharing directory with ML service)
+        // Adjust path as needed for local environment
+        java.io.File directory = new java.io.File("../ml_service/data/patients");
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+        
+        java.io.File csvFile = new java.io.File(directory, patientId + "_baseline.csv");
+        
+        try {
+            boolean isNew = !csvFile.exists();
+            // Check line count if file exists
+            if (!isNew) {
+                long lineCount = java.nio.file.Files.lines(csvFile.toPath()).count();
+                if (lineCount >= 10001) { // 1 header + 10000 data rows
+                    return; // Already has enough data
+                }
+            }
+
+            java.io.FileWriter fw = new java.io.FileWriter(csvFile, true);
+            if (isNew) {
+                fw.write("timestamp,lat,lon,accX,accY,accZ,gyroAlpha,gyroBeta,gyroGamma,hour,minute\n");
+            }
+            
+            LocalDateTime ts = loc.getTimestamp();
+            String row = String.format("%s,%.6f,%.6f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%d,%d\n",
+                ts.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
+                loc.getLatitude(), loc.getLongitude(), 
+                loc.getAccX(), loc.getAccY(), loc.getAccZ(),
+                loc.getGyroAlpha(), loc.getGyroBeta(), loc.getGyroGamma(),
+                ts.getHour(), ts.getMinute());
+            
+            fw.write(row);
+            fw.close();
+            
+            // Check if we just hit the 10,000 threshold
+            long lineCountAfter = java.nio.file.Files.lines(csvFile.toPath()).count();
+            if (lineCountAfter == 10001) {
+                log.info("Baseline data complete for patient {}. Triggering ML training.", patientId);
+                // Trigger ML training (optional: this usually happens via MlAnalysisService)
+            }
+            
+        } catch (java.io.IOException e) {
+            log.error("Error writing baseline data: {}", e.getMessage());
+        }
     }
 
     /**
