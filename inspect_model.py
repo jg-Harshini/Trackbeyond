@@ -27,4 +27,6 @@ def inspect_model(model_path, scaler_path):
         print(f"Error: {e}")
 
 if __name__ == "__main__":
-    inspect_model("Behavioural_analysis.pkl", "Behavioural_analysis_scaler.pkl")
+    # Point to the newly trained patient model
+    inspect_model("ml_service/models/model_patient_sample_001.pkl", 
+                  "ml_service/models/scaler_patient_sample_001.pkl")

@@ -12,8 +12,8 @@ app = FastAPI(title="Dementia Behavioral Analysis Service")
 
 # Path to models relative to this script
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "models", "Behavioural_analysis.pkl")
-SCALER_PATH = os.path.join(BASE_DIR, "models", "Behavioural_analysis_scaler.pkl")
+MODEL_PATH = os.path.join(BASE_DIR, "models", "model_patient_sample_001.pkl")
+SCALER_PATH = os.path.join(BASE_DIR, "models", "scaler_patient_sample_001.pkl")
 
 # Load global models
 try:
