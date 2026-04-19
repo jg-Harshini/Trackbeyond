@@ -50,6 +50,8 @@ const PatientDashboard = () => {
     const [geoError, setGeoError] = useState(null);
     const [copied, setCopied] = useState(false);
     const [emergencyStatus, setEmergencyStatus] = useState(null);
+    const [behaviorStatus, setBehaviorStatus] = useState('normal'); // 'normal' | 'anomaly'
+    const [activeAlerts, setActiveAlerts] = useState([]);
 
     // Sensor states
     const [sensorEnabled, setSensorEnabled] = useState(false);
@@ -94,6 +96,14 @@ const PatientDashboard = () => {
             websocketService.subscribeToLocation(user.patientId, (location) => {
                 setCurrentLocation(location);
                 if (location) setMapCenter({ lat: location.latitude, lng: location.longitude });
+            });
+
+            websocketService.subscribeToAlerts(user.patientId, (alert) => {
+                if (alert.type === 'BEHAVIORAL_ANOMALY') {
+                    setBehaviorStatus('anomaly');
+                    setTimeout(() => setBehaviorStatus('normal'), 10000); // Reset after 10s
+                }
+                setActiveAlerts(prev => [alert, ...prev].slice(0, 5));
             });
         });
 
@@ -595,6 +605,28 @@ const PatientDashboard = () => {
                                                 onClick={() => { setPeakMagnitude(0); setDebugStatus('Monitoring...'); }}>
                                                 Reset Peak
                                             </Button>
+                                        </Box>
+
+                                        {/* Real-time Behavior Analysis Status */}
+                                        <Box sx={{ mt: 2, p: 2, borderRadius: 1, border: '1px solid',
+                                            borderColor: behaviorStatus === 'normal' ? 'success.main' : 'error.main',
+                                            bgcolor: behaviorStatus === 'normal' ? 'rgba(46, 125, 50, 0.05)' : 'rgba(211, 47, 47, 0.05)' }}>
+                                            <Typography variant="subtitle2" color={behaviorStatus === 'normal' ? 'success.main' : 'error.main'} gutterBottom>
+                                                🧠 AI Behavioral Analysis
+                                            </Typography>
+                                            <Box display="flex" alignItems="center" gap={1}>
+                                                <Box sx={{ width: 10, height: 10, borderRadius: '50%', 
+                                                    bgcolor: behaviorStatus === 'normal' ? 'success.main' : 'error.main',
+                                                    animation: behaviorStatus === 'normal' ? 'none' : 'pulse 1s infinite' }} />
+                                                <Typography variant="body2" fontWeight="bold">
+                                                    STATUS: {behaviorStatus === 'normal' ? 'NORMAL' : 'ANOMALY DETECTED'}
+                                                </Typography>
+                                            </Box>
+                                            <Typography variant="caption" color="text.secondary">
+                                                {behaviorStatus === 'normal' 
+                                                    ? 'Your current activity matches your baseline behavior.' 
+                                                    : 'Unusual movement patterns detected. Caretakers have been notified.'}
+                                            </Typography>
                                         </Box>
                                     </Box>
                                 )}
