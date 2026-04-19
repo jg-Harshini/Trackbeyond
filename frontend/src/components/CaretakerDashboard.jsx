@@ -149,8 +149,11 @@ const CaretakerDashboard = () => {
                     });
 
                     // Update real-time behavioral status if alert is from ML
-                    if (alert.type === 'BEHAVIORAL_ANOMALY' && patient.id === selectedPatient) {
+                    if (alert.type === 'BEHAVIORAL_ANOMALY' && alert.patientId === selectedPatient) {
                         setBehavioralStatus('ABNORMAL');
+                        // Auto-reset back to stable after 30 seconds of no new anomalies
+                        if (window._behaviorTimer) clearTimeout(window._behaviorTimer);
+                        window._behaviorTimer = setTimeout(() => setBehavioralStatus('STABLE'), 30000);
                     }
                 });
             });
@@ -543,23 +546,33 @@ const CaretakerDashboard = () => {
                         </Card>
 
                         {/* Behavioral Analysis Monitoring */}
-                        <Card sx={{ mt: 2, bgcolor: 'background.paper', borderLeft: '5px solid #4caf50' }}>
+                        <Card sx={{ mt: 2, bgcolor: 'background.paper', 
+                            borderLeft: '5px solid',
+                            borderColor: behavioralStatus === 'STABLE' ? '#4caf50' : '#f44336' }}>
                             <CardContent>
                                 <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1}>
                                     🧠 AI Behavior Status
                                 </Typography>
                                 <Box sx={{ textAlign: 'center', py: 2 }}>
-                                    <Chip 
-                                        label={behavioralStatus} 
-                                        color={behavioralStatus === 'STABLE' ? 'success' : 'error'} 
-                                        sx={{ fontWeight: 'bold', px: 2 }}
-                                    />
+                                    <Box display="flex" justifyContent="center" alignItems="center" gap={1} mb={1}>
+                                        {behavioralStatus === 'ABNORMAL' && (
+                                            <Box sx={{ width: 12, height: 12, borderRadius: '50%', 
+                                                bgcolor: '#f44336', animation: 'pulse 1s infinite' }} />
+                                        )}
+                                        <Chip 
+                                            label={behavioralStatus} 
+                                            color={behavioralStatus === 'STABLE' ? 'success' : 'error'} 
+                                            sx={{ fontWeight: 'bold', px: 2 }}
+                                        />
+                                    </Box>
                                     <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
-                                        Pattern: {behavioralStatus === 'STABLE' ? 'Normal' : 'Abnormal Activity'}
+                                        Pattern: {behavioralStatus === 'STABLE' ? 'Normal' : 'Anomaly Detected'}
                                     </Typography>
                                 </Box>
                                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontStyle: 'italic' }}>
-                                    Real-time analysis powered by ML Model
+                                    {behavioralStatus === 'STABLE' 
+                                        ? "Patient's current behavior matches their baseline." 
+                                        : "Unusual patterns detected. Check alerts for details."}
                                 </Typography>
                             </CardContent>
                         </Card>
